@@ -1,3 +1,3 @@
-from .store import Store
+from .store import *
 
-__all__ = ("Store",)
+
