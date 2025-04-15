@@ -7,9 +7,10 @@ from sqlalchemy import (
     Column,
     ForeignKey,
     Integer,
-    String,
+    String
 )
 
+from sqlalchemy.orm import Mapped, mapped_column
 from app.store.database.sqlalchemy_base import Base
 
 
@@ -57,10 +58,10 @@ class AnswerModel(Base):
 class UserModel(Base):
     __tablename__ = "users"
 
-    _id = Column(BigInteger, primary_key=True)
-    total_score = Column(Integer, default=0)
-    total_games = Column(Integer, default=0)
-    total_wins = Column(Integer, default=0)
+    _id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    total_score: Mapped[int] = mapped_column(Integer, default=0)
+    total_games: Mapped[int] = mapped_column(Integer, default=0)
+    total_wins: Mapped[int] = mapped_column(Integer, default=0)
 
 
 @dataclass

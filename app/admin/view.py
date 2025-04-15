@@ -3,13 +3,13 @@ from aiohttp_apispec import request_schema, response_schema
 from aiohttp_session import new_session
 
 from app.bot.web.app import View
-from app.bot.web.shemas import AdminRequestShema, RespShema
+from app.bot.web.shemas import AdminRequestSchema, RespShema
 from app.pkg.utils import error_json_responce, json_responce
 
 
 class AdminView(View):
     @response_schema(RespShema, 200)
-    @request_schema(AdminRequestShema)
+    @request_schema(AdminRequestSchema)
     async def post(self):
         data = await self.request.json()
 

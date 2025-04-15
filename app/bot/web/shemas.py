@@ -6,7 +6,7 @@ class RespShema(Schema):
     data = fields.Dict()
 
 
-class AdminRequestShema(Schema):
+class AdminRequestSchema(Schema):
     email = fields.Str(
         required=True,
         error_messages={
