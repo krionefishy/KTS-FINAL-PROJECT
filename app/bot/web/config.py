@@ -1,7 +1,9 @@
 
 import typing
 from dataclasses import dataclass
+
 import yaml
+
 if typing.TYPE_CHECKING:
     from app.bot.web.app import Application
 
@@ -9,6 +11,7 @@ if typing.TYPE_CHECKING:
 @dataclass
 class BotConfig:
     token: str
+
 
 @dataclass
 class DatabaseConfig:
@@ -30,7 +33,6 @@ class AdminConfig:
     password: str
 
 
-
 @dataclass
 class Config:
     bot: BotConfig
@@ -38,15 +40,15 @@ class Config:
     admin: AdminConfig
 
 
-
 @dataclass
 class SessionConfig:
     key: str
-    lifetime: int = 24*3600
+    lifetime: int = 24 * 3600
     cookie_name: str = "session_id"
     http_only: bool = True
     secure: bool = False
-    
+
+   
 def setup_config(app: "Application", cfg_path: str):
     with open(cfg_path, "r") as f:
         raw_config = yaml.safe_load(f)

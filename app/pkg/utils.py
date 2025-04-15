@@ -7,10 +7,11 @@ def json_responce(data: dict | None = None) -> Response:
         data = {}
 
     return aiohttp_json_responce(
-        data={ 
+        data={
         "data": data,
         }
     )
+
 
 def error_json_responce(
         http_status: int, 

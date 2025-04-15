@@ -1,9 +1,10 @@
 
-from app.base.base_accessor import BaseAccessor
-from app.store.database.modles import Quesion, Answer, Theme, ThemeModel
-from sqlalchemy import select, delete
+from aiohttp.web_exceptions import HTTPBadRequest, HTTPConflict
+from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
-from aiohttp.web_exceptions import HTTPConflict, HTTPBadRequest
+
+from app.base.base_accessor import BaseAccessor
+from app.store.database.modles import Theme, ThemeModel
 
 
 class ThemeAccessor(BaseAccessor):
@@ -16,7 +17,7 @@ class ThemeAccessor(BaseAccessor):
                 res = stmt.scalar_one_or_none()
                 if res is not None:
                     raise HTTPConflict(
-                        text = f"Theme with name {theme} already exists",
+                        text=f"Theme with name {theme} already exists",
                         content_type="application/json"
                     )
 
@@ -25,7 +26,7 @@ class ThemeAccessor(BaseAccessor):
                 await session.commit()
 
                 return Theme(
-                    id = res._id,
+                    id=res._id,
                     theme_name=res.theme_name
                 )
 
@@ -37,7 +38,6 @@ class ThemeAccessor(BaseAccessor):
                 self.logger(f"error while adding theme {e}")
                 raise 
 
-
     async def delete_theme(self, theme):
         async with self.app.database.session() as session:
             try:
@@ -47,7 +47,7 @@ class ThemeAccessor(BaseAccessor):
 
                 if stmt.scalar_one_or_none() is None:
                     raise HTTPBadRequest(
-                        text=f"Theme with such name does not exists",
+                        text="Theme with such name does not exists",
                         content_type="application/json"
                     )
                 
@@ -59,12 +59,10 @@ class ThemeAccessor(BaseAccessor):
             except HTTPBadRequest:
                 raise 
 
-
             except Exception as e:
                 await session.rollback()
                 self.logger(f"error while deleting theme from db {e}")
                 raise 
-
 
     async def get_theme(self, title):
         ...

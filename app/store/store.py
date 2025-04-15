@@ -1,18 +1,18 @@
-import typing 
+import typing
 
 from app.store.database.database import Database
 
 if typing.TYPE_CHECKING:
     from app.bot.web.app import Application
 
+
 class Store:
     def __init__(self, app: "Application"):
-        from app.store.users.accessor import UserAccessor
         from app.store.admin.accessor import AdminAccessor
         from app.store.answer.accessor import AnswerAccessor
         from app.store.questiion.accessor import QuizAccessor
         from app.store.themes.accessor import ThemeAccessor
-
+        from app.store.users.accessor import UserAccessor
 
         self.admins = AdminAccessor(app)
         self.user = UserAccessor(app)
@@ -20,10 +20,8 @@ class Store:
         self.quesions = QuizAccessor(app)
         self.answers = AnswerAccessor(app)
 
-    
     async def connect(self):
         await self.admins.connect()
-
     
     async def disconnect(self):
         await self.admins.disconnect()

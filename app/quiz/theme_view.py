@@ -1,6 +1,7 @@
+from aiohttp_apispec import request_schema, response_schema
+
 from app.bot.web.app import View
-from app.bot.web.shemas import RespShema,ThemeRequestShemaPost
-from aiohttp_apispec import response_schema, request_schema
+from app.bot.web.shemas import RespShema, ThemeRequestShemaPost
 from app.pkg.utils import json_responce
 
 
@@ -14,6 +15,4 @@ class ThemeView(View):
 
         await self.request.app.store.theme.create_theme(title)
         
-        return json_responce(data = {"theme": title})
-    
-
+        return json_responce(data={"theme": title})

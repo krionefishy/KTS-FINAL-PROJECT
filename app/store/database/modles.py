@@ -1,13 +1,24 @@
-from sqlalchemy import Column, BigInteger, String, Boolean, ForeignKey, Integer, JSON
-from app.store.database.sqlalchemy_base import Base
 from dataclasses import dataclass
+
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    Boolean,
+    Column,
+    ForeignKey,
+    Integer,
+    String,
+)
+
+from app.store.database.sqlalchemy_base import Base
+
 
 class AdminModel(Base):
     __tablename__ = "admins"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    email = Column(String, unique = True, nullable=False)
-    password = Column(String, nullable=False )
+    email = Column(String, unique=True, nullable=False)
+    password = Column(String, nullable=False)
 
 
 class ChatSession(Base):
@@ -17,7 +28,7 @@ class ChatSession(Base):
     is_active = Column(Boolean, default=False)
     admin_id = Column(BigInteger, default=None)
     players = Column(JSON)
-    current_game_state = Column(JSON) #TODO пока пусть будет так, потом надо продумать получше, в идеале хранить раунд, текущего отвечающего и все вопросы наверное
+    current_game_state = Column(JSON)
 
 
 class ThemeModel(Base):
@@ -34,11 +45,14 @@ class QuestionModel(Base):
     price = Column(Integer)
     question_text = Column(String(500))
 
+
 class AnswerModel(Base):
     __tablename__ = "answers"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    question_id = Column(Integer, ForeignKey("questions.question_id"), unique= True)
+    question_id = Column(Integer, 
+                         ForeignKey("questions.question_id"), unique=True)
     answers = Column(JSON)
+
 
 class UserModel(Base):
     __tablename__ = "users"
@@ -48,23 +62,24 @@ class UserModel(Base):
     total_games = Column(Integer, default=0)
     total_wins = Column(Integer, default=0)
 
+
 @dataclass
 class Admin:
-    id: int 
+    id: int
     email: str
     password: str
 
-    
+
 @dataclass
 class Answer:
     questiond_id: int
     answers: dict[str: bool]
 
-    
+
 @dataclass
 class Quesion:
     id: int
-    theme_id: int 
+    theme_id: int
     price: int
     question_text: str
 
@@ -73,6 +88,3 @@ class Quesion:
 class Theme:
     id: int
     theme_name: str
-
-
-    

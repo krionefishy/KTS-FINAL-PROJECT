@@ -31,7 +31,6 @@ class BaseAccessor:
             self.logger.error(f"Disconnection error in {self.__class__.__name__}: {e}")
             raise
 
-
     async def _on_connect(self):
         pass
 

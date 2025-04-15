@@ -1,20 +1,23 @@
+import base64
+import logging
+
 from aiohttp.web import (
     Application as AiohttpApplication,
     Request as AiohttpRequest,
-    View as AiohttpView
+    View as AiohttpView,
 )
-from app.store import Store, setup_store
-from .routes import setup_routes
-from app.bot.web.config import Config, setup_config
 from aiohttp_apispec import setup_aiohttp_apispec
 from aiohttp_session import setup as setup_session
+from aiohttp_session.cookie_storage import EncryptedCookieStorage
+from cryptography import fernet
+
+from app.bot.web.config import Config, setup_config
 from app.bot.web.mw import setup_middlewares
+from app.store import Store, setup_store
 from app.store.database.database import Database
 from app.store.database.modles import Admin
-from cryptography import fernet
-from aiohttp_session.cookie_storage import EncryptedCookieStorage
-import base64
-import logging
+
+from .routes import setup_routes
 
 __all__ = ("Application",)
 
@@ -26,6 +29,7 @@ class Application(AiohttpApplication):
 
 
 app = Application()
+
 
 class Request(AiohttpRequest):
     admin: Admin | None = None
@@ -49,14 +53,12 @@ class View(AiohttpView):
         return self.request.get("data", {})
 
 
-
 async def on_startup(app: "Application"):
-    app.database.connect()
+    await app.database.connect()
 
 
 async def on_shutdown(app: "Application"):
-    app.database.disconnect()
-
+    await app.database.disconnect()
 
 
 def setup_app(config_path: str) -> Application:
@@ -66,8 +68,8 @@ def setup_app(config_path: str) -> Application:
     
     app.database = Database(app)
 
-    app.on_startup(on_startup)
-    app.on_shutdown(on_shutdown)
+    app.on_startup.append(on_startup)
+    app.on_shutdown.append(on_shutdown)
     
     fernet_key = fernet.Fernet.generate_key()
     secret_key = base64.urlsafe_b64decode(fernet_key)

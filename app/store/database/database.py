@@ -1,13 +1,20 @@
-from dataclasses import dataclass
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy import text, MetaData
-from app.store.database.sqlalchemy_base import Base
 import logging
+from dataclasses import dataclass
+
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+
+from app.store.database.sqlalchemy_base import Base
+
 
 @dataclass
 class Database:
 
-    def __init__(self, app = None):
+    def __init__(self, app=None):
         self.app = app
         self.engine = None 
         self.session_factory = None
@@ -18,13 +25,12 @@ class Database:
 
     async def connect(self, *args, **kwargs):
         db_url = self.app.config.database.url 
-        self.engine = create_async_engine(db_url, echo = True)
+        self.engine = create_async_engine(db_url, echo=True)
         self.session_factory = async_sessionmaker(
             bind=self.engine,
             class_=AsyncSession,
             expire_on_commit=False
         )
-
     
         async with self.engine.begin() as conn:
             await conn.run_sync(self.metadata.create_all)
@@ -33,12 +39,10 @@ class Database:
             await session.execute(text("SELECT 1"))
             self.logger.info("Database connection established")
         
-
     async def disconnect(self, *args, **kwargs):
         if self.engine:
             await self.engine.dispose()
             self.logger.info("Database connection closed")
-   
 
     def session(self):
         if not self.session_factory:

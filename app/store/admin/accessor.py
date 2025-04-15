@@ -1,26 +1,25 @@
-import typing 
+import typing
 
 if typing.TYPE_CHECKING:
     from app.bot.web.app import Application
 
-from app.store.database.database import Database
-from app.store.database.modles import Admin
-from app.base.base_accessor import BaseAccessor
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.dialects.postgresql import insert
+import bcrypt
+from aiohttp.web_exceptions import HTTPConflict
 from sqlalchemy import select
-from app.store.database.modles import AdminModel, ChatSession, ThemeModel
-from aiohttp.web_exceptions import HTTPBadRequest, HTTPConflict
-import bcrypt 
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
+
+from app.base.base_accessor import BaseAccessor
+from app.store.database.modles import Admin, AdminModel, ChatSession
 
 
 class AdminAccessor(BaseAccessor):
     async def connect(self, app: "Application"):
         admin_from_config = app.config.admin
 
-
         salt = bcrypt.gensalt()
-        hashed_pw = bcrypt.hashpw(admin_from_config.password.encode("utf-8"), salt).decode("utf-8")
+        hashed_pw = bcrypt.hashpw(admin_from_config.password.encode("utf-8"), 
+                                  salt).decode("utf-8")
 
         async with self.app.database.session() as session:
             try:
@@ -31,7 +30,6 @@ class AdminAccessor(BaseAccessor):
 
                 stmt = stmt.on_conflict_do_nothing(index_elements=['email'])
 
-
                 await session.execute(stmt)
                 await session.commit()
 
@@ -40,19 +38,14 @@ class AdminAccessor(BaseAccessor):
                 self.logger(f"error while creating admin on startup {e}")
                 raise 
 
-
     async def get_active_sessions(self):
 
         async with self.app.database.session() as session:
             result = await session.execute(
-                select(ChatSession.chat_id).where(ChatSession.is_active == True)
+                select(ChatSession.chat_id).where(ChatSession.is_active is True)
             )
             
-
-            active_chats = result.scalars().all()
-            return active_chats
-        
-    
+            return result.scalars().all()
 
     async def create_admin(self, email: str, password: str) -> Admin:
         async with self.app.database.session() as session:
@@ -78,7 +71,6 @@ class AdminAccessor(BaseAccessor):
                 await session.rollback()
                 raise HTTPConflict(reason="admin already exists")
             
-
     async def get_admin_by_email(self, email: str) -> Admin:
         async with self.app.database.session() as session:
             result = await session.execute(

@@ -1,9 +1,9 @@
 from marshmallow import Schema, fields, validate
 
+
 class RespShema(Schema):
     status = fields.Int()
     data = fields.Dict()
-
 
 
 class AdminRequestShema(Schema):

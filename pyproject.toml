@@ -1,7 +1,8 @@
 [tool.ruff]
-line-length = 80
+line-length = 90
 indent-width = 4
 target-version = "py312"
+ignore = ["B904", "F403", "G004"]
 exclude = [
     ".bzr",
     ".direnv",
@@ -29,7 +30,8 @@ exclude = [
     "env",
     "etc",
     "requirements",
-    "venv"
+    "venv",
+    "alembic/"
 ]
 
 [tool.ruff.format]
