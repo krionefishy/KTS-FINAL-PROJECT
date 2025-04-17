@@ -1,8 +1,11 @@
 import asyncio
+from typing import Any
+
 import aiohttp
-from typing import Optional, Dict, Any
+
 from app.bot.bot import Bot
 from app.bot.handlers import dispatch_update
+
 
 class Poller:
     def __init__(self, bot: Bot, session: aiohttp.ClientSession):
@@ -32,8 +35,7 @@ class Poller:
         self.is_running = False 
         self.logger.info("Poller stopped")
 
-
-    async def _get_updates(self) -> Optional[Dict[str, Any]]:
+    async def _get_updates(self) -> list[dict[str, Any]] | None:
         url = f"{self.base_url}getUpdates"
         params = {
             "timeout": self.timeout,

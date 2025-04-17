@@ -1,9 +1,13 @@
-import aiohttp
 import typing
 from logging import getLogger
+
+import aiohttp
+
 from app.bot.poller import Poller
+
 if typing.TYPE_CHECKING:
     from app.bot.web.app import Application
+
 
 class Bot:
     def __init__(self, token: str, app: "Application" = None):
@@ -12,7 +16,6 @@ class Bot:
         self.poller = None
         self.app = app  
         self.logger = getLogger("bot")
-
 
     @property
     def base_url(self):
@@ -30,7 +33,7 @@ class Bot:
             "reply_markup": reply_markup
         }
 
-        async with self.session.post(url, json = payload) as resp:
+        async with self.session.post(url, json=payload) as resp:
             return await resp.json()
         
 

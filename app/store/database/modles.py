@@ -1,16 +1,8 @@
 from dataclasses import dataclass
 
-from sqlalchemy import (
-    JSON,
-    BigInteger,
-    Boolean,
-    Column,
-    ForeignKey,
-    Integer,
-    String
-)
-
+from sqlalchemy import JSON, BigInteger, Boolean, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
+
 from app.store.database.sqlalchemy_base import Base
 
 
@@ -30,6 +22,7 @@ class ChatSession(Base):
     admin_id = Column(BigInteger, default=None)
     players = Column(JSON)
     current_game_state = Column(JSON)
+    current_theme = Column(Integer)
 
 
 class ThemeModel(Base):

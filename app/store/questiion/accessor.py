@@ -1,8 +1,8 @@
 import random
 
 from aiohttp.web_exceptions import HTTPBadRequest, HTTPConflict
-from sqlalchemy import insert, select
-
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from app.base.base_accessor import BaseAccessor
 from app.store.database.modles import Quesion, QuestionModel, ThemeModel
 
@@ -38,7 +38,7 @@ class QuizAccessor(BaseAccessor):
         self,
         theme_name: str,
         question_text: str,
-        questtion_price: int
+        question_price: int
     ) -> Quesion:
         async with self.app.database.session() as session:
             try:
@@ -58,7 +58,7 @@ class QuizAccessor(BaseAccessor):
                     select(QuestionModel)
                     .where(QuestionModel.theme_id == theme_id,
                         QuestionModel.question_text == question_text,
-                        QuestionModel.price == questtion_price)
+                        QuestionModel.price == question_price)
                 )
 
                 result = result.scalar_one_or_none()
