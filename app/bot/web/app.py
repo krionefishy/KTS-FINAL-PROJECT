@@ -1,6 +1,7 @@
 import base64
 import logging
-
+import asyncio
+import typing
 from aiohttp.web import (
     Application as AiohttpApplication,
     Request as AiohttpRequest,
@@ -17,6 +18,7 @@ from app.store import Store, setup_store
 from app.store.database.database import Database
 from app.store.database.modles import Admin
 
+from app.bot.bot import Bot
 from .routes import setup_routes
 
 __all__ = ("Application",)
@@ -26,7 +28,7 @@ class Application(AiohttpApplication):
     config: Config | None = None
     store: Store | None = None
     database: Database
-
+    bot: Bot | None = None
 
 app = Application()
 
@@ -53,21 +55,25 @@ class View(AiohttpView):
         return self.request.get("data", {})
 
 
-async def on_startup(app: "Application"):
+async def on_startup(app):
     await app.database.connect()
+    app.bot = Bot(token=app.config.bot.token, app=app)
+    await app.bot.start()
 
 
 async def on_shutdown(app: "Application"):
     await app.database.disconnect()
-
+    if app.bot and app.bot.poller:
+        await app.bot.close()
 
 def setup_app(config_path: str) -> Application:
     app = Application()
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.ERROR)
     setup_config(app, config_path)
+   
+    #logging.getLogger().setLevel(app.config.logging.level.upper())
     
     app.database = Database(app)
-
     app.on_startup.append(on_startup)
     app.on_shutdown.append(on_shutdown)
     

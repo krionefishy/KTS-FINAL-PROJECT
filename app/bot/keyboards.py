@@ -4,7 +4,7 @@ from app.store.database.modles import Answer
 def create_join_kb(chat_id: int) -> dict:
     return {
         "inline_keyboard": [
-            [{"text": "Присоединиться", "callback": f"join:{chat_id}"}]
+            [{"text": "Присоединиться", "callback_data": f"join:{chat_id}"}]
         ]
     }
 

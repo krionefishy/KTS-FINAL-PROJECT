@@ -1,7 +1,7 @@
 import random
 
-from aiohttp.web_exceptions import HTTPBadRequest, HTTPConflict
-from sqlalchemy import select
+from aiohttp.web_exceptions import HTTPBadRequest, HTTPConflict, HTTPNotFound
+from sqlalchemy import select, delete
 from sqlalchemy.dialects.postgresql import insert
 from app.base.base_accessor import BaseAccessor
 from app.store.database.modles import Quesion, QuestionModel, ThemeModel
@@ -78,13 +78,39 @@ class QuizAccessor(BaseAccessor):
                     price=result.price,
                     question_text=result.question_text
                 )
-            except HTTPBadRequest:
-                raise
-            
-            except HTTPConflict:
-                raise
 
             except Exception as e:
                 await session.rollback()
                 self.logger(f"error while adding question {e}")
                 raise
+
+
+    async def delete_question(self, question_id: int, theme_id: int):
+        try:
+            async with self.app.database.session() as session:
+                exists = await session.execute(
+                    select(QuestionModel)
+                    .where(QuestionModel.question_id == question_id,
+                        QuestionModel.theme_id == theme_id
+                        )
+                )
+
+                exists = exists.scalar_one_or_none()
+                if exists is None:
+                    raise HTTPNotFound(
+                        text="This question does not exists",
+                        content_type="application/json"
+                        )
+                
+                stmt = delete(QuestionModel).where(
+                    QuestionModel.theme_id == theme_id, 
+                    QuestionModel.question_id == question_id)            
+                await session.execute(stmt)
+                await session.commit()
+        except Exception as e:
+            await session.rollback()
+            self.logger(f"error while deleting question {e}")
+            raise
+
+
+    

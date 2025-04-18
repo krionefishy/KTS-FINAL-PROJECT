@@ -1,4 +1,4 @@
-
+import random
 from aiohttp.web_exceptions import HTTPBadRequest, HTTPConflict
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
@@ -38,7 +38,7 @@ class ThemeAccessor(BaseAccessor):
                 self.logger(f"error while adding theme {e}")
                 raise 
 
-    async def delete_theme(self, theme):
+    async def delete_theme(self, theme) -> Theme:
         async with self.app.database.session() as session:
             try:
                 stmt = await session.execute(
@@ -65,4 +65,16 @@ class ThemeAccessor(BaseAccessor):
                 raise 
 
     async def get_theme(self, title):
-        ...
+        async with self.app.database.session() as session:
+            result = await session.execute(
+                select(ThemeModel)
+            )
+
+            result = random.choice(result.scalar_one_or_none())
+            if not result:
+                return None
+            
+            return Theme(
+                id=result._id,
+                theme_name=result.theme_name
+            )

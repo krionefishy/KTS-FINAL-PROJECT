@@ -13,7 +13,23 @@ database:
   user: pupupu
   password: 123456
   database: kts_project
+
 admin:
   email: "pupupuadmin@gmail.com"
   password: "ultra_super_secure_password"
+
 store: {}
+
+bot:
+  token: "7547307621:AAGP9iZhQPIEJGHsUJ4w0NXQoI8WNZK6me8"
+  poll_timeout: 30
+
+session:
+  key: "secret_key_pupupu"
+  lifetime: 86400
+  cookie_name: "AIOHTTP_SESSION"
+  http_only: True
+  secure: False
+
+logging:
+  level: DEBUG

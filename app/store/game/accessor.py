@@ -2,7 +2,7 @@ import random
 from app.base.base_accessor import BaseAccessor
 from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
-from app.store.database.modles import ChatSession
+from app.store.database.modles import ChatSession, Theme, ThemeModel, UserModel
 
 
 class GameAccessor(BaseAccessor):
@@ -59,10 +59,10 @@ class GameAccessor(BaseAccessor):
                 players_dict = result.scalar_one_or_none()
                 if not players_dict:
                     players_dict = {}
-                    players_dict[chat_id] = {"points": 0}
+                    players_dict[user_id] = {"points": 0}
 
                 else:
-                    players_dict[chat_id] = {"points": 0}
+                    players_dict[user_id] = {"points": 0}
 
 
                 await session.execute(
@@ -81,14 +81,14 @@ class GameAccessor(BaseAccessor):
             self.logger(f"Error while joining game chat_id: {chat_id}, error: {e}")
 
 
-    async def write_current_theme(self, chat_id: int, title: str):
+    async def write_current_theme(self, chat_id: int, theme_id: int):
         try:
             async with self.app.database.session() as session:
                 await session.execute(
                     update(ChatSession)
                     .where(ChatSession.chat_id == chat_id)
                     .values(
-                        current_theme = title
+                        current_theme = theme_id
                     )
                 )
 
@@ -99,3 +99,86 @@ class GameAccessor(BaseAccessor):
             await session.rollback()
             self.logger(f"Error while changing theme in chat: {chat_id}, error {e}")
             
+
+
+    async def get_current_theme(self, chat_id: int) -> Theme:
+        async with self.app.database.session() as session:
+            result = await session.execute(
+                select(ChatSession.current_theme)
+                .where(ChatSession.chat_id == chat_id)
+            )
+
+
+            theme_id = result.scalar_one_or_none()
+            if not theme_id:
+                return None 
+            
+            theme_title = await session.execute(
+                select(ThemeModel.theme_name)
+                .where(ThemeModel._id == theme_id)
+                )
+            
+
+            title = theme_title.scalar_one_or_none()
+            if not title:
+                return None
+            
+            return Theme(
+                id = theme_id,
+                theme_name=title
+            )
+        
+    async def write_score_stat(self, chat_id: int, user_id: int, price: int):
+        try:
+            async with self.app.database.session() as session:
+                players = await session.execute(
+                    select(ChatSession.players)
+                    .where(ChatSession.chat_id == chat_id)
+                )
+
+                players_dict = players.scalar_one_or_none()
+
+                if players_dict is None:
+                    return
+                
+                players_dict[user_id]["points"] += price 
+
+
+                stmt = update(ChatSession).where(ChatSession.chat_id == chat_id).values(players = players_dict)
+                await session.execute(stmt)
+                
+
+
+
+                exists = await session.execute(
+                    select(UserModel).where(UserModel._id == user_id)
+                )
+
+                user = exists.scalar_one_or_none()
+                if user:
+                    new_ts = user.total_score + price
+                    update_user_stmt = (
+                        update(UserModel)
+                        .where(UserModel._id == user_id)
+                        .values(total_score=new_ts)
+                    )
+                    await session.execute(update_user_stmt)
+                else:
+                    insert_user_stmt = (
+                        insert(UserModel)
+                        .values(_id=user_id,
+                                total_score = price,
+                                total_games = 1,
+                                total_wins = 0)
+                    )
+                    await session.execute(insert_user_stmt)
+
+                await session.commit()
+
+
+        except Exception as e:
+            await session.rollback()
+            self.logger.error(f"Error while writing score statistics {e}")
+
+
+                
