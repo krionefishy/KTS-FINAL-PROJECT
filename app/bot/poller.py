@@ -1,10 +1,10 @@
 import asyncio
-from typing import Any
 import typing
+
 import aiohttp
+
 if typing.TYPE_CHECKING:
     from app.bot.bot import Bot
-
 
 
 class Poller:
@@ -80,7 +80,5 @@ class Poller:
         except aiohttp.ClientError as e:
             self.logger.error(f"HTTP error: {e}")
         except Exception as e:
-            self.logger.error(f"Unexpected error: {str(e)}")
+            self.logger.error(f"Unexpected error: {str(e)!r}")
         return None
-            
-            

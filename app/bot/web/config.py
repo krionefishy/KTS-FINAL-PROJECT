@@ -33,6 +33,7 @@ class AdminConfig:
     email: str
     password: str
 
+
 @dataclass
 class SessionConfig:
     key: str
@@ -40,6 +41,7 @@ class SessionConfig:
     cookie_name: str = "session_id"
     http_only: bool = True
     secure: bool = False
+
 
 @dataclass
 class Config:

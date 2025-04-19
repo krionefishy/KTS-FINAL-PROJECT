@@ -1,4 +1,6 @@
+import logging
 import typing
+
 if typing.TYPE_CHECKING:
     from app.bot.bot import Bot
 
@@ -16,4 +18,5 @@ async def dispatch_update(bot: "Bot", update: dict):
         elif "callback_query" in update:
             await game_handlers.process_callback(bot, update["callback_query"])
     except Exception as e:
-        ...
+        logging.error(msg=f"Error in dispatch {e}")
+        

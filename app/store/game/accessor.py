@@ -1,7 +1,7 @@
-import random
-from app.base.base_accessor import BaseAccessor
 from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
+
+from app.base.base_accessor import BaseAccessor
 from app.store.database.modles import ChatSession, Theme, ThemeModel, UserModel
 
 
@@ -29,8 +29,7 @@ class GameAccessor(BaseAccessor):
 
                 if result.is_active:
                     return 1
-
-
+                
                 await session.execute(
                     update(ChatSession)
                     .where(ChatSession.chat_id == chat_id)
@@ -45,9 +44,8 @@ class GameAccessor(BaseAccessor):
                 return 0
             except Exception as e:
                 await session.rollback()
-                self.logger.error(f"Error while starting game chat: {chat_id}, error: {e}")
+                self.logger.error(f"Error while starting game chat:{chat_id}, error: {e}")
 
-                
     async def join(self, chat_id, user_id):
         try:
             async with self.app.database.session() as session:
@@ -56,30 +54,33 @@ class GameAccessor(BaseAccessor):
                     .where(ChatSession.chat_id == chat_id)
                 ) 
 
-                players_dict = result.scalar_one_or_none()
+                players_dict: dict[str, list[dict[int, int]]] = result.scalar_one_or_none()
                 if not players_dict:
-                    players_dict = {}
-                    players_dict[user_id] = {"points": 0}
+                    players_dict = {
+                        "players": [
+                            {user_id: 0}
+                        ]
+                    }
+                    
 
                 else:
-                    players_dict[user_id] = {"points": 0}
-
+                    players_dict["players"].append(
+                        {user_id: 0}
+                    )
 
                 await session.execute(
                         update(ChatSession)
                         .where(ChatSession.chat_id == chat_id)
                         .values(
-                            players = players_dict
+                            players=players_dict
                         )
                     )
 
                 await session.commit()
                 
-
         except Exception as e:
             await session.rollback()
             self.logger(f"Error while joining game chat_id: {chat_id}, error: {e}")
-
 
     async def write_current_theme(self, chat_id: int, theme_id: int):
         try:
@@ -88,10 +89,9 @@ class GameAccessor(BaseAccessor):
                     update(ChatSession)
                     .where(ChatSession.chat_id == chat_id)
                     .values(
-                        current_theme = theme_id
+                        current_theme=theme_id
                     )
                 )
-
 
                 await session.commit()
 
@@ -99,15 +99,12 @@ class GameAccessor(BaseAccessor):
             await session.rollback()
             self.logger(f"Error while changing theme in chat: {chat_id}, error {e}")
             
-
-
     async def get_current_theme(self, chat_id: int) -> Theme:
         async with self.app.database.session() as session:
             result = await session.execute(
                 select(ChatSession.current_theme)
                 .where(ChatSession.chat_id == chat_id)
             )
-
 
             theme_id = result.scalar_one_or_none()
             if not theme_id:
@@ -118,13 +115,12 @@ class GameAccessor(BaseAccessor):
                 .where(ThemeModel._id == theme_id)
                 )
             
-
             title = theme_title.scalar_one_or_none()
             if not title:
                 return None
             
             return Theme(
-                id = theme_id,
+                id=theme_id,
                 theme_name=title
             )
         
@@ -136,19 +132,19 @@ class GameAccessor(BaseAccessor):
                     .where(ChatSession.chat_id == chat_id)
                 )
 
-                players_dict = players.scalar_one_or_none()
+                players_dict: dict[str, list[dict[int, int]]] = players.scalar_one_or_none()
 
                 if players_dict is None:
                     return
                 
-                players_dict[user_id]["points"] += price 
+                for player in players_dict["players"]:
+                    if user_id in player:
+                        player[user_id] += price
 
-
-                stmt = update(ChatSession).where(ChatSession.chat_id == chat_id).values(players = players_dict)
+                stmt = (update(ChatSession)
+                        .where(ChatSession.chat_id == chat_id)
+                        .values(players=players_dict))
                 await session.execute(stmt)
-                
-
-
 
                 exists = await session.execute(
                     select(UserModel).where(UserModel._id == user_id)
@@ -167,18 +163,14 @@ class GameAccessor(BaseAccessor):
                     insert_user_stmt = (
                         insert(UserModel)
                         .values(_id=user_id,
-                                total_score = price,
-                                total_games = 1,
-                                total_wins = 0)
+                                total_score=price,
+                                total_games=1,
+                                total_wins=0)
                     )
                     await session.execute(insert_user_stmt)
 
                 await session.commit()
 
-
         except Exception as e:
             await session.rollback()
-            self.logger.error(f"Error while writing score statistics {e}")
-
-
-                
+            self.logger.error(f"Error while writing score statistics {e}")      

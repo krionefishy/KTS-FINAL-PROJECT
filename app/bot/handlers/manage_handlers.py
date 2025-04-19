@@ -17,7 +17,7 @@ async def process_command(bot: "Bot", message: dict):
 async def process_command_start(bot: "Bot", chat_id):
     await bot.send_message(
             chat_id=chat_id,
-            text="Привет, давайте поиграем, присоединяйтесь к игре по кнопке ниже",
+            text="Начинаем игру",
             reply_markup=create_join_kb(chat_id)
         )
     

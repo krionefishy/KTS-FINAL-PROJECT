@@ -24,17 +24,22 @@ class Bot:
     async def start(self):
         self.poller = Poller(self, 
                              self.session,
-                             poll_timeout=self.app.config.bot.poll_timeout if self.app else 30
+                             poll_timeout=self.app.config.bot.poll_timeout
                             )
         
         await self.poller.start()
 
-    async def send_message(self, chat_id: int, text: str, reply_markup=None, parse_mode = "HTML"):
+    async def send_message(self, 
+                           chat_id: int, 
+                           text: str, 
+                           reply_markup=None, 
+                           parse_mode="HTML"):
+        
         url = f"{self.base_url}sendMessage"
         payload = {
             "chat_id": int(chat_id),
             "text": text,
-             "parse_mode": parse_mode
+            "parse_mode": parse_mode
         }
 
         if reply_markup:
@@ -42,9 +47,36 @@ class Bot:
         headers = {
         "Content-Type": "application/json"
         }
-        async with self.session.post(url, json=payload, headers=headers) as resp:
-            return await resp.json()
+        try:
+
+            async with self.session.post(url, json=payload, headers=headers) as resp:
+                return await resp.json()
+            
+        except Exception as e:
+            self.logger.error(f"error sending message {str(e)!r}")
+    
+    async def delete_message(self, 
+                             chat_id: int, 
+                             message_id: int,
+                             parse_mode="HTML"):
         
+        url = f"{self.base_url}deleteMessage"
+
+        params = {
+            "chat_id": chat_id,
+            "message_id": message_id,
+        }
+        headers = {
+        "Content-Type": "application/json"
+        }
+
+        try:
+            async with self.session.post(url, json=params, headers=headers) as resp:
+                return await resp.json()
+            
+        except Exception as e:
+            self.logger.error(f"error deleting message tg api {str(e)!r}")
+
     async def close(self):
         if self.poller:
             await self.poller.stop()

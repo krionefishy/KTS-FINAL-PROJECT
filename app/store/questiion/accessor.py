@@ -1,8 +1,9 @@
 import random
 
 from aiohttp.web_exceptions import HTTPBadRequest, HTTPConflict, HTTPNotFound
-from sqlalchemy import select, delete
+from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
+
 from app.base.base_accessor import BaseAccessor
 from app.store.database.modles import Quesion, QuestionModel, ThemeModel
 
@@ -83,7 +84,6 @@ class QuizAccessor(BaseAccessor):
                 await session.rollback()
                 self.logger(f"error while adding question {e}")
                 raise
-
 
     async def delete_question(self, question_id: int, theme_id: int):
         try:
