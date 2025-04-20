@@ -82,3 +82,10 @@ class Quesion:
 class Theme:
     id: int
     theme_name: str
+
+@dataclass
+class User:
+    id: int
+    total_games: int
+    total_wins: int
+    total_score: int

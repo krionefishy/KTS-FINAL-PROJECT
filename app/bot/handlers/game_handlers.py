@@ -1,13 +1,20 @@
-from app.bot.bot import Bot
+import typing
 from aiohttp import ClientSession
 from app.FSM.state_accessor import FsmAccessor
 from app.bot.keyboards import create_join_kb
 import asyncio
-class Gamehandler:
+
+if typing.TYPE_CHECKING:
+    from app.bot.bot import Bot
+class GameHandler:
     def __init__(self, bot: "Bot", session: ClientSession):
         self.bot = bot
         self.session = session
         self.fsm = FsmAccessor(bot.app)
+
+    async def connect(self):
+        if hasattr(self, 'fsm') and hasattr(self.fsm, 'connect'):
+            await self.fsm.connect()
 
     async def start_game(self, chat_id: int):
         is_active = await self.fsm.get_game_status(chat_id)
@@ -29,6 +36,14 @@ class Gamehandler:
         message_id = message["result"]["message_id"]
 
         asyncio.create_task(self._waiting_for_players(chat_id, message_id))
+
+
+    async def stop_game(self, chat_id: int):
+        players_list = await self.fsm.get_players_stat(chat_id=chat_id)
+
+        await self.fsm.clear_game_session(chat_id)
+
+        return players_list
 
 
     async def _waiting_for_players(self, chat_id: int, message_id: int):
@@ -54,10 +69,18 @@ class Gamehandler:
 
 
 
+    async def handle_join(self, chat_id: int, user_id: int):
+        await self.fsm.add_last_player_to_queue(user_id, chat_id, user_score=0)
+
+
     async def _delete_message(self, chat_id: int, message_id: int):
         await self.bot.delete_message(chat_id, message_id)
 
 
 
     async def _start_round(self, chat_id: int):
-        ...
+        await self.bot.send_message(
+            chat_id=chat_id,
+            text="Начинаем игру!"
+        )
+

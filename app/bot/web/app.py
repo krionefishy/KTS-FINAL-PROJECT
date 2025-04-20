@@ -55,9 +55,10 @@ class View(AiohttpView):
         return self.request.get("data", {})
 
 
-async def on_startup(app):
+async def on_startup(app: "Application"):
     await app.database.connect()
     app.bot = Bot(token=app.config.bot.token, app=app)
+    await app.bot.connect()
     await app.bot.start()
 
 

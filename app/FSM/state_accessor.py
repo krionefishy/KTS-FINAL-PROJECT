@@ -16,6 +16,7 @@ class FsmAccessor(BaseAccessor):
 
                 if players_dict:
                     next_player = players_dict["players"].pop(0)
+                    players_dict['players'].append(next_player)
 
                 stmt = (update(ChatSession)
                         .where(ChatSession.chat_id == chat_id)
@@ -25,8 +26,8 @@ class FsmAccessor(BaseAccessor):
                 await session.execute(stmt)
                 await session.commit()
 
-                for i in next_player.keys():
-                    return i
+                for u_id in next_player.keys():
+                    return u_id
         except Exception as e:
             await session.rollback()
             self.logger(f"error while getting next player {e}")
@@ -60,7 +61,7 @@ class FsmAccessor(BaseAccessor):
                 session.commit()
 
         except Exception as e:
-            session.roollback
+            await session.rollback()
             self.logger.error(f"Error in adding to queue {e}")
 
 
@@ -103,8 +104,7 @@ class FsmAccessor(BaseAccessor):
                                     current_game_state={
                                                         'state': 'waiting_players',
                                                         'current_player': None,
-                                                        'question': None,
-                                                        'message_id': None
+                                                        'current_question': None,
                                                     }
                                     ))
                 session.commit()
@@ -119,11 +119,36 @@ class FsmAccessor(BaseAccessor):
     async def set_admin_id(self, chat_id: int, admin_id: int):
         try:
             async with self.app.database.session() as session:
-                stmt = (update(ChatSession)
-                        .where(ChatSession.chat_id == chat_id)
+            
+                result = await session.execute(
+                    select(ChatSession)
+                    .where(ChatSession.chat_id == chat_id)
+                )
+
+                current_session = result.scalar_one_or_none()
+
+                if not current_session:
+                    stmt = (
+                        insert(ChatSession)
                         .values(
-                            admin_id=admin_id
-                        ))
+                            chat_id=chat_id,
+                            admin_id=admin_id,
+                            is_active=True,
+                            players={"players": []},
+                            current_game_state={
+                                "state": "waiting_for_players",
+                                "current_player": None,
+                                "current_question": None,
+                            },
+                            current_theme=None
+                        )
+                    )
+                else:
+                    stmt = (update(ChatSession)
+                            .where(ChatSession.chat_id == chat_id)
+                            .values(
+                                admin_id=admin_id
+                            ))
                 
                 await session.execute(stmt)
                 await session.commit()
@@ -165,3 +190,57 @@ class FsmAccessor(BaseAccessor):
         except Exception as e:
             await session.rollback()
             self.logger.error(f"Error while changing status {e}")
+
+
+    async def is_admin(self, chat_id: int, user_id: int) -> bool:
+        async with self.app.database.session() as session:
+            result = await session.execute(
+                select(ChatSession.admin_id)
+                .where(ChatSession.chat_id == chat_id)
+            )
+
+            admin_id = result.scalar_one_or_none()
+            return admin_id == user_id
+        
+
+    async def clear_game_session(self, chat_id: int): 
+        try:
+            async with self.app.database.session() as session:
+                stmt = (
+                    update(ChatSession)
+                    .where(ChatSession.chat_id == chat_id)
+                    .values(
+                        is_active=False,
+                        admin_id=None,
+                        players={
+                            "players": []
+                        },
+                        current_game_state=None
+                    )
+                )
+
+                await session.execute(stmt)
+                await session.commit()
+
+        except Exception as e:
+            await session.rollback()
+            self.logger.error(f"error clearing session {e}")
+
+
+
+
+    async def get_players_stat(self, chat_id: int):
+        async with self.app.database.session() as session:
+            result = await session.execute(
+                select(ChatSession.players)
+                .where(ChatSession.chat_id == chat_id)
+            )
+
+
+            players_dict = result.scalar_one_or_none()
+
+            if players_dict:
+                return players_dict["players"]
+            else:
+                return []
+            

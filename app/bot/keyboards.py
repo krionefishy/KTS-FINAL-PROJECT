@@ -48,3 +48,16 @@ def create_statistik_kb(chat_id: int) -> dict:
             }]
         ]
     } 
+
+
+
+def create_themes_keyboard(chat_id: int, themes: list[str]):
+    return {
+        "inline_keyboard": [
+            [{
+                "text": title,
+                "callback_data": title
+            }]
+            for title in themes
+        ]
+    }

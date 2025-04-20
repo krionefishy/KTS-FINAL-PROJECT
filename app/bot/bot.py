@@ -4,7 +4,7 @@ from logging import getLogger
 import aiohttp
 
 from app.bot.poller import Poller
-
+from app.bot.handlers.game_handlers import GameHandler
 if typing.TYPE_CHECKING:
     from app.bot.web.app import Application
 
@@ -16,11 +16,22 @@ class Bot:
         self.poller = None
         self.app = app  
         self.logger = getLogger("bot")
+        self._game_handler = GameHandler(self, self.session)
 
     @property
     def base_url(self):
         return f"https://api.telegram.org/bot{self.token}/"
     
+    def get_game_handler(self) -> GameHandler:
+        return self._game_handler
+    
+
+    async def connect(self):
+        if hasattr(self, '_game_handler') and self._game_handler:
+            if hasattr(self._game_handler, 'connect'):
+                await self._game_handler.connect()
+
+
     async def start(self):
         self.poller = Poller(self, 
                              self.session,
@@ -80,5 +91,7 @@ class Bot:
     async def close(self):
         if self.poller:
             await self.poller.stop()
-        await self.session.close()
-
+        if self.session:
+            await self.session.close()
+        if self._game_handler:
+            await self._game_handler.close()

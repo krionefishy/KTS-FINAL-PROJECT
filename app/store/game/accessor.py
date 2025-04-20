@@ -36,8 +36,12 @@ class GameAccessor(BaseAccessor):
                     .values(
                         is_active=True,
                         admin_id=admin_id,
-                        current_game_state={},
-                        players={}
+                        current_game_state={
+                                            'state': 'waiting_players',
+                                            'current_player': None,
+                                            'current_question': None,
+                                            },
+                        players={"players": []}
                     )
                 )
                 await session.commit()
@@ -173,4 +177,48 @@ class GameAccessor(BaseAccessor):
 
         except Exception as e:
             await session.rollback()
-            self.logger.error(f"Error while writing score statistics {e}")      
+            self.logger.error(f"Error while writing score statistics {e}") 
+
+
+    async def add_win_to_user_statistic(self, user_id: int):
+        try:
+            async with self.app.database.session() as session:
+                user = await session.execute(
+                    select(UserModel)
+                    .where(UserModel._id == user_id)
+                )
+
+                user = user.scalar_one_or_none()
+                if user:
+                    stmt = (update(UserModel)
+                            .where(UserModel._id == user_id)
+                            .values(
+                                total_games = user.total_games + 1,
+                                total_wins = user.total_wins + 1
+                            ))
+                    
+                    await session.execute(stmt)
+                    await session.commit()
+
+        except Exception as e:
+            await session.rollback()
+            self.logger.error(f"error while adding win stat {e}")
+
+
+    async def add_total_games_stat(self, user_id: int):
+        try:
+            async with self.app.database.session() as session:
+                stmt = (update(UserModel)
+                        .where(UserModel._id == user_id)
+                        .values(
+                            total_games = UserModel.total_games + 1
+                        ))
+
+                
+                await session.execute(stmt)
+                await session.commit()
+        except Exception as e:
+            await session.rollback()
+            self.logger(f"error incrementing counter {e}")
+
+
