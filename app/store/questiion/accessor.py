@@ -1,11 +1,16 @@
 import random
 
 from aiohttp.web_exceptions import HTTPBadRequest, HTTPConflict, HTTPNotFound
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update, func
 from sqlalchemy.dialects.postgresql import insert
 
 from app.base.base_accessor import BaseAccessor
-from app.store.database.modles import Quesion, QuestionModel, ThemeModel
+from app.store.database.modles import (
+    Question, 
+    QuestionModel, 
+    ThemeModel, 
+    ChatSession
+)
 
 
 class QuizAccessor(BaseAccessor):
@@ -13,7 +18,7 @@ class QuizAccessor(BaseAccessor):
         self,
         question_theme_id: int,
         question_price: int
-    ) -> Quesion:
+    ) -> Question:
         async with self.app.database.session() as session:
             result = await session.execute(
                 select(QuestionModel)
@@ -27,7 +32,7 @@ class QuizAccessor(BaseAccessor):
             question_model = random.choice(result)
 
             if question_model is not None:
-                return Quesion(
+                return Question(
                     id=question_model.question_id,
                     theme_id=question_model.theme_id,
                     price=question_model.price,
@@ -40,7 +45,7 @@ class QuizAccessor(BaseAccessor):
         theme_name: str,
         question_text: str,
         question_price: int
-    ) -> Quesion:
+    ) -> Question:
         async with self.app.database.session() as session:
             try:
                 theme_result = await session.execute(
@@ -73,7 +78,7 @@ class QuizAccessor(BaseAccessor):
                 await session.execute(stmt)
                 await session.commit()
 
-                return Quesion(
+                return Question(
                     id=result.question_id,
                     theme_id=result.theme_id,
                     price=result.price,
@@ -113,4 +118,65 @@ class QuizAccessor(BaseAccessor):
             raise
 
 
-    
+    async def get_random_question_for_game(self, chat_id: int, theme_id: int, price: int):
+        try:
+            async with self.app.database.session() as session:
+                result = await session.execute(
+                    select(ChatSession.used_theme_questions)
+                    .where(ChatSession.chat_id == chat_id)
+                )
+
+                lst: list[tuple[int, int]] = result.scalar_one_or_none()
+
+                if lst:
+                    for i in lst:
+                        if i[0] == theme_id and i[1] == price:
+                            return None
+
+                result = await session.execute(
+                    select(QuestionModel)
+                    .where(
+                        QuestionModel.theme_id == theme_id,
+                        QuestionModel.price == price
+                    )
+                    .order_by(func.random())
+                    .limit(1)
+                )
+
+                question = result.scalar_one_or_none()
+                if question:
+                    lst.append((theme_id, price))
+
+
+                    stmt = (update(ChatSession)
+                            .where(ChatSession.chat_id == chat_id)
+                            .values(
+                                used_theme_questions = lst
+                            ))
+                    
+                    await session.execute(stmt)
+                    await session.commit()
+
+                    return Question(
+                        id=question.question_id,
+                        theme_id=question.theme_id,
+                        price=price,
+                        question_text=question.question_text
+                    )
+
+                return None
+
+        except Exception as e:
+            await session.rollback()
+            self.logger.error(f"error getting question")
+
+
+    async def get_question_price(self, question_id: int) -> int:
+        async with self.app.database.session() as session:
+            result = await session.execute(
+                select(QuestionModel.price)
+                .where(QuestionModel.question_id == question_id)
+            )
+
+            price = result.scalar_one_or_none()
+            return price if price else 0

@@ -23,8 +23,10 @@ class ChatSession(Base):
     players = Column(JSON)
     current_game_state = Column(JSON)
     current_theme = Column(Integer)
+    used_theme_questions = Column(JSON, default=list)
+    game_themes = Column(JSON, default=list)
 
-
+    
 class ThemeModel(Base):
     __tablename__ = "themes"
 
@@ -71,7 +73,7 @@ class Answer:
 
 
 @dataclass
-class Quesion:
+class Question:
     id: int
     theme_id: int
     price: int

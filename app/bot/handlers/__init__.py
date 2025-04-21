@@ -16,7 +16,9 @@ async def dispatch_update(bot: "Bot", update: dict):
                 await manage_handlers.process_command(bot, message)
         
         elif "callback_query" in update:
-            await game_handlers.process_callback(bot, update["callback_query"])
+            game_handler = bot.get_game_handler()
+
+            await game_handler.process_callback(bot, update["callback_query"])
     except Exception as e:
         logging.error(msg=f"Error in dispatch {e}")
         

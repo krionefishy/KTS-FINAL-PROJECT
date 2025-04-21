@@ -20,8 +20,14 @@ class GameAccessor(BaseAccessor):
                         chat_id=chat_id,
                         is_active=True,
                         admin_id=admin_id,
-                        players={},
-                        current_game_state={}
+                        players={"players": []},
+                        current_game_state={
+                                            'state': 'waiting_players',
+                                            'current_player': None,
+                                            'current_question': None,
+                                            },
+                        used_theme_questions=[],
+                        game_themes=[]
                         )
                     await session.execute(stmt)
                     await session.commit()
@@ -41,7 +47,9 @@ class GameAccessor(BaseAccessor):
                                             'current_player': None,
                                             'current_question': None,
                                             },
-                        players={"players": []}
+                        players={"players": []},
+                        used_theme_questions=[],
+                        game_themes=[]
                     )
                 )
                 await session.commit()
@@ -50,7 +58,7 @@ class GameAccessor(BaseAccessor):
                 await session.rollback()
                 self.logger.error(f"Error while starting game chat:{chat_id}, error: {e}")
 
-    async def join(self, chat_id, user_id):
+    async def join(self, chat_id: int, user_id: int):
         try:
             async with self.app.database.session() as session:
                 result = await session.execute(
@@ -68,6 +76,11 @@ class GameAccessor(BaseAccessor):
                     
 
                 else:
+                    for i in players_dict['players']:
+                        if user_id in i:
+                            return 
+                        
+                    
                     players_dict["players"].append(
                         {user_id: 0}
                     )

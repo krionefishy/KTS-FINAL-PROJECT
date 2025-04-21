@@ -1,27 +1,29 @@
-from app.store.database.modles import Answer
+from app.store.database.modles import Answer, Theme, Quesion
 
 
-def create_join_kb(chat_id: int) -> dict:
+def create_join_kb() -> dict:
     return {
         "inline_keyboard": [
-            [{"text": "Присоединиться", "callback_data": f"join:{chat_id}"}]
+            [{"text": "Присоединиться", "callback_data": "join_game"}]
         ]
     }
 
 
-def create_theme_kb(topics: list[str]) -> dict:
+def create_theme_kb(topics: list[Theme]) -> dict:
     return {
         "inline_keyboard": [
-            [{"text": topic, "callback_data": f"topic {topic}"}] for topic in topics
+            [{"text": topic.theme_name,
+              "callback_data": f"theme:{topic.id}"
+            }]
+            for topic in topics
         ]
     }
 
 
-def create_question_kb(questions: list[int]) -> dict:
-    # TODO подумать, какой колбек ставить вопросам, так как берем их из базы в моменте
+def create_question_kb(questions: list[int], ) -> dict:
     return {
         "inline_keyboard": [
-            [{"price": price, "callback_data": f"question {price}"}] 
+            [{"price": price, "callback_data": f"question:{price}"}] 
             for price in questions
         ]
     }
@@ -31,33 +33,9 @@ def create_answers_kb(answer: Answer) -> dict:
     return {
         "inline_keyboard": [
             [{
-                "text": option,
+                "text": answer_text,
                 "callback_data": f"answer:{answer.question_id}:{idx}"
             }]
-            for idx, option in enumerate(answer.answers.keys(), 1)
-        ]
-    }
-
-
-def create_statistik_kb(chat_id: int) -> dict:
-    return {
-        "inline_keyboard": [
-            [{
-            "text": "Посмотреть статистику",
-            "callback_data": f"stat_check chad_id: {chat_id}"
-            }]
-        ]
-    } 
-
-
-
-def create_themes_keyboard(chat_id: int, themes: list[str]):
-    return {
-        "inline_keyboard": [
-            [{
-                "text": title,
-                "callback_data": title
-            }]
-            for title in themes
+            for idx, (answer_text, _) in enumerate(answer.items())
         ]
     }

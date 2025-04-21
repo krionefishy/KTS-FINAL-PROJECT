@@ -81,7 +81,7 @@ class ThemeAccessor(BaseAccessor):
             )
         
 
-    async def get_themes_for_game(self, count_themes: int):
+    async def get_themes_for_game(self, count_themes: int) -> list[Theme]:
         try:
             async with self.app.database.session() as session:
                 result = await session.execute(
@@ -96,12 +96,21 @@ class ThemeAccessor(BaseAccessor):
                     return []
                 
 
-                shuffled_themes = result.copy()
+                shuffled_themes: list[ThemeModel] = result.copy()
                 random.shuffle(shuffled_themes)
 
 
                 if count_themes < len(shuffled_themes):
-                    return shuffled_themes[:count_themes]
+                    return_list = []
+                    for i in range(count_themes):
+                        current = shuffled_themes[i]
+                        return_list.append(
+                            Theme(
+                                id=current._id,
+                                theme_name=current.theme_name
+                            )
+                        )
+                    return return_list
                 
                 else:
                     return shuffled_themes

@@ -52,15 +52,18 @@ async def process_command_stop(bot: "Bot", chat_id: int, user_id: int):
     game_stats = await game_handler.stop_game(chat_id)
 
     message = "🛑 Игра остановлена администратором\n\n"
-    if game_stats['players']:
+    if game_stats:
         message += "🏆 Результаты:\n"
-        for player in game_stats['players']:
-            message += f"{player['username']}: {player['score']} очков\n"
+        winner_dict = max(game_stats, key=lambda x: next(iter(x.values())))
+        winner_user_id = next(iter(winner_dict))  
+        winner_score = winner_dict[winner_user_id]
+        message += f'<a href="tg://user?id={winner_user_id}">Игрок</a>, со счетом {winner_score}\n'
 
 
     await bot.send_message(
         chat_id=chat_id,
         text=message,
+        parse_mode="HTML"
     )
 
 async def process_command_stats(bot: "Bot", chat_id: int, user_id: int, username: str):

@@ -1,6 +1,6 @@
 import typing
 from logging import getLogger
-
+from typing import Optional
 import aiohttp
 
 from app.bot.poller import Poller
@@ -87,6 +87,29 @@ class Bot:
             
         except Exception as e:
             self.logger.error(f"error deleting message tg api {str(e)!r}")
+
+    async def answer_callback_query(self,
+                                    callback_query_id: str,
+                                    text: Optional[str] = "",
+                                    cache_time: int = 0
+                                    ):
+        
+        payload = {
+            "callback_query_id": callback_query_id,
+            "cache_time": cache_time,
+            "text": text
+        }
+        headers = {
+        "Content-Type": "application/json"
+        }
+        url = f"{self.base_url}answerCallbackQuery"
+
+        try:
+            async with self.session.post(url=url, json=payload, headers=headers) as resp:
+                return resp.json()
+        except Exception as e:
+            self.logger.error(f"error sending cb_query {e}")
+
 
     async def close(self):
         if self.poller:
