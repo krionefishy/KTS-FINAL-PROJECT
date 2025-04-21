@@ -1,9 +1,11 @@
 import typing
+
 from app.FSM.state_accessor import FsmAccessor
 from app.store.users.accessor import UserAccessor
 
 if typing.TYPE_CHECKING:
     from app.bot.bot import Bot
+
 
 async def process_command(bot: "Bot", message: dict):
     chat_id = message["chat"]["id"]
@@ -20,9 +22,9 @@ async def process_command(bot: "Bot", message: dict):
         case "/stats":
             await process_command_stats(bot, chat_id, user_id, username)
 
+
 async def process_command_start(bot: "Bot", chat_id: int, user_id: int):
     fsm = FsmAccessor(bot.app)
-
 
     if await fsm.get_game_status(chat_id):
         await bot.send_message(chat_id, "Игра уже идет!")
@@ -32,6 +34,7 @@ async def process_command_start(bot: "Bot", chat_id: int, user_id: int):
 
     game_handler = bot.get_game_handler()
     await game_handler.start_game(chat_id)
+
 
 async def process_command_rules(bot: "Bot", chat_id):
     await bot.send_message(
@@ -59,12 +62,12 @@ async def process_command_stop(bot: "Bot", chat_id: int, user_id: int):
         winner_score = winner_dict[winner_user_id]
         message += f'<a href="tg://user?id={winner_user_id}">Игрок</a>, со счетом {winner_score}\n'
 
-
     await bot.send_message(
         chat_id=chat_id,
         text=message,
         parse_mode="HTML"
     )
+
 
 async def process_command_stats(bot: "Bot", chat_id: int, user_id: int, username: str):
     uac = UserAccessor(bot.app)
@@ -75,7 +78,6 @@ async def process_command_stats(bot: "Bot", chat_id: int, user_id: int, username
     message += f"🎮 Сыграно игр: {user.total_games}\n"
     message += f"🏆 Побед: {user.total_wins}\n"
     message += f"⭐ Всего очков: {user.total_score}\n"
-
 
     await bot.send_message(
         chat_id=chat_id,

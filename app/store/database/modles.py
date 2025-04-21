@@ -85,6 +85,7 @@ class Theme:
     id: int
     theme_name: str
 
+
 @dataclass
 class User:
     id: int

@@ -4,7 +4,7 @@ import typing
 if typing.TYPE_CHECKING:
     from app.bot.bot import Bot
 
-from . import game_handlers, manage_handlers
+from . import manage_handlers
 
 
 async def dispatch_update(bot: "Bot", update: dict):

@@ -73,14 +73,12 @@ class GameAccessor(BaseAccessor):
                             {user_id: 0}
                         ]
                     }
-                    
 
                 else:
                     for i in players_dict['players']:
                         if user_id in i:
                             return 
                         
-                    
                     players_dict["players"].append(
                         {user_id: 0}
                     )
@@ -192,7 +190,6 @@ class GameAccessor(BaseAccessor):
             await session.rollback()
             self.logger.error(f"Error while writing score statistics {e}") 
 
-
     async def add_win_to_user_statistic(self, user_id: int):
         try:
             async with self.app.database.session() as session:
@@ -206,8 +203,8 @@ class GameAccessor(BaseAccessor):
                     stmt = (update(UserModel)
                             .where(UserModel._id == user_id)
                             .values(
-                                total_games = user.total_games + 1,
-                                total_wins = user.total_wins + 1
+                                total_games=user.total_games + 1,
+                                total_wins=user.total_wins + 1
                             ))
                     
                     await session.execute(stmt)
@@ -217,17 +214,15 @@ class GameAccessor(BaseAccessor):
             await session.rollback()
             self.logger.error(f"error while adding win stat {e}")
 
-
     async def add_total_games_stat(self, user_id: int):
         try:
             async with self.app.database.session() as session:
                 stmt = (update(UserModel)
                         .where(UserModel._id == user_id)
                         .values(
-                            total_games = UserModel.total_games + 1
+                            total_games=UserModel.total_games + 1
                         ))
 
-                
                 await session.execute(stmt)
                 await session.commit()
         except Exception as e:

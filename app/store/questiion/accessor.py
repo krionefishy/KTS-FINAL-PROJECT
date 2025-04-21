@@ -1,16 +1,11 @@
 import random
 
 from aiohttp.web_exceptions import HTTPBadRequest, HTTPConflict, HTTPNotFound
-from sqlalchemy import delete, select, update, func
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from app.base.base_accessor import BaseAccessor
-from app.store.database.modles import (
-    Question, 
-    QuestionModel, 
-    ThemeModel, 
-    ChatSession
-)
+from app.store.database.modles import ChatSession, Question, QuestionModel, ThemeModel
 
 
 class QuizAccessor(BaseAccessor):
@@ -117,7 +112,6 @@ class QuizAccessor(BaseAccessor):
             self.logger(f"error while deleting question {e}")
             raise
 
-
     async def get_random_question_for_game(self, chat_id: int, theme_id: int, price: int):
         try:
             async with self.app.database.session() as session:
@@ -147,11 +141,10 @@ class QuizAccessor(BaseAccessor):
                 if question:
                     lst.append((theme_id, price))
 
-
                     stmt = (update(ChatSession)
                             .where(ChatSession.chat_id == chat_id)
                             .values(
-                                used_theme_questions = lst
+                                used_theme_questions=lst
                             ))
                     
                     await session.execute(stmt)
@@ -168,8 +161,7 @@ class QuizAccessor(BaseAccessor):
 
         except Exception as e:
             await session.rollback()
-            self.logger.error(f"error getting question")
-
+            self.logger.error(f"error getting question {e}")
 
     async def get_question_price(self, question_id: int) -> int:
         async with self.app.database.session() as session:

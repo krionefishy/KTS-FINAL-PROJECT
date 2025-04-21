@@ -1,10 +1,12 @@
 import typing
 from logging import getLogger
 from typing import Optional
+
 import aiohttp
 
-from app.bot.poller import Poller
 from app.bot.handlers.game_handlers import GameHandler
+from app.bot.poller import Poller
+
 if typing.TYPE_CHECKING:
     from app.bot.web.app import Application
 
@@ -25,12 +27,10 @@ class Bot:
     def get_game_handler(self) -> GameHandler:
         return self._game_handler
     
-
     async def connect(self):
-        if hasattr(self, '_game_handler') and self._game_handler:
-            if hasattr(self._game_handler, 'connect'):
+        if hasattr(self, '_game_handler') and self._game_handler and \
+           hasattr(self._game_handler, 'connect'):
                 await self._game_handler.connect()
-
 
     async def start(self):
         self.poller = Poller(self, 
@@ -109,7 +109,6 @@ class Bot:
                 return resp.json()
         except Exception as e:
             self.logger.error(f"error sending cb_query {e}")
-
 
     async def close(self):
         if self.poller:

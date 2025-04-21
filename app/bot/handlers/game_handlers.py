@@ -1,17 +1,18 @@
 import asyncio
-import typing
 import logging
+import typing
+
 from aiohttp import ClientSession
-from app.FSM.state_accessor import FsmAccessor
-from app.store.game.accessor import GameAccessor
+
 from app.bot.keyboards import (
     create_answers_kb,
     create_join_kb,
     create_question_kb,
-    create_theme_kb
+    create_theme_kb,
 )
-from app.store.database.modles import Question, Answer
-
+from app.FSM.state_accessor import FsmAccessor
+from app.store.database.modles import Answer, Question
+from app.store.game.accessor import GameAccessor
 
 if typing.TYPE_CHECKING:
     from app.bot.bot import Bot
@@ -37,18 +38,15 @@ class GameHandler:
         
         await self.fsm.set_game_status(chat_id)
 
-
         message = await self.bot.send_message(
             chat_id=chat_id,
             text="Начинаем новую игру. Присоединяйстесь",
             reply_markup=create_join_kb()
         )
 
-
         message_id = message["result"]["message_id"]
 
         asyncio.create_task(self._waiting_for_players(chat_id, message_id))
-
 
     async def stop_game(self, chat_id: int):
         players_list = await self.fsm.get_players_stat(chat_id=chat_id)
@@ -56,7 +54,6 @@ class GameHandler:
         await self.fsm.clear_game_session(chat_id)
 
         return players_list
-
 
     async def _waiting_for_players(self, chat_id: int, message_id: int):
         await asyncio.sleep(15)
@@ -79,23 +76,17 @@ class GameHandler:
 
         await self._start_round(chat_id)
 
-
-
     async def handle_join(self, chat_id: int, user_id: int):
         await self.fsm.add_last_player_to_queue(user_id, chat_id, user_score=0)
 
-
     async def _delete_message(self, chat_id: int, message_id: int):
         await self.bot.delete_message(chat_id, message_id)
-
-
 
     async def _start_round(self, chat_id: int):
         await self.bot.send_message(
             chat_id=chat_id,
             text="Начинаем игру!"
         )
-
 
         user_id = await self.fsm.get_next_player(chat_id)
         themes = await self.bot.app.store.theme.get_themes_for_game(3)
@@ -115,7 +106,6 @@ class GameHandler:
             parse_mode="HTML"
         )
 
-
     async def handle_join_game(self, chat_id: int, user_id: int):
         try:
             if await self.fsm.get_game_status(chat_id):
@@ -132,7 +122,6 @@ class GameHandler:
                 text="Ошибка подключения"
             )
             
-
     async def handle_theme_selection(self, 
                                      chat_id: int, 
                                      theme_id: int, 
@@ -175,7 +164,6 @@ class GameHandler:
                 text="Сейчас не ваша очередь для выбора вопроса",
             )
             return
-        
 
         theme_id = await self.fsm.get_current_theme(chat_id)
         if theme_id > 0:
@@ -198,7 +186,7 @@ class GameHandler:
             message += question.question_text
 
             answers = await self.bot.app.store.answers.get_answers(question.id)
-            reply_markup =  create_answers_kb(answer=answers.answers)         
+            reply_markup = create_answers_kb(answer=answers.answers)         
 
             await self.bot.send_message(
                 chat_id=chat_id,
@@ -220,7 +208,6 @@ class GameHandler:
                 text="Сейчас не ваша очередь для ответа",
             )
             return
-        
 
         answer: Answer = await self.bot.app.store.answers.get_answers(question_id)
         
@@ -275,7 +262,6 @@ class GameHandler:
                 text="❌ Неверный ответ! Ход передан следующему игроку"
                 )
 
-
     async def _next_turn(self, chat_id: int):
         next_player_id = await self.fsm.get_next_player(chat_id)
 
@@ -294,12 +280,10 @@ class GameHandler:
                             reply_markup=create_theme_kb(themes),
                             parse_mode="HTML"
                         )
-        
 
     async def _check_end(self, chat_id: int) -> bool:
         return await self.fsm.check_count_answered_questions(chat_id)
     
-
     async def process_callback(self, callback_query: dict):
         chat_id = callback_query["message"]["chat"]["id"]
         user_id = callback_query["from"]["id"]
@@ -307,10 +291,8 @@ class GameHandler:
 
         if not callback_data:
             return 
-        
 
         action, *params = callback_data.split(":")
-
 
         match action:
             case "join_game":

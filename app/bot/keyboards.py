@@ -1,4 +1,4 @@
-from app.store.database.modles import Answer, Theme, Quesion
+from app.store.database.modles import Answer, Theme
 
 
 def create_join_kb() -> dict:

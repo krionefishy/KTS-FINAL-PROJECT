@@ -1,6 +1,5 @@
 from aiohttp.web_exceptions import HTTPNotFound
-from sqlalchemy import delete, select
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import select
 
 from app.base.base_accessor import BaseAccessor
 from app.store.database.modles import Answer, AnswerModel
@@ -17,7 +16,7 @@ class AnswerAccessor(BaseAccessor):
             answer = result.scalar_one_or_none()
             if answer is None:
                 raise HTTPNotFound(
-                    text=f"answers does not exists for this question",
+                    text="answers does not exists for this question",
                     content_type="application/json"
                 )
             
@@ -33,11 +32,13 @@ class AnswerAccessor(BaseAccessor):
             if chosen_answer in options:
                 is_correct = options.get(chosen_answer, False)
                 return bool(is_correct)
-            else:
-                self.logger.error("recieved answer is not in answers dictionay")
+            self.logger.error("recieved answer is not in answers dictionay")
         else:
             self.logger.error("recieved object not a dictionary")
 
         return False
             
-
+    async def create_answer(self, question_id: int, answers: dict):
+        # TODO Допилить
+        raise NotImplementedError
+    
