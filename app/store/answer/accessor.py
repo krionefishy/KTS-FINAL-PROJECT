@@ -24,19 +24,23 @@ class AnswerAccessor(BaseAccessor):
                           answers=answer)
         
     async def check_answer(self, question_id: int, chosen_answer: str) -> bool:
-        as_model = await self.get_answers(question_id)
+        try:
+            answer_model = await self.get_answers(question_id)
+            if not answer_model or not answer_model.answers:
+                self.logger.error(f"No answers found for question {question_id}")
+                return False
 
-        options = as_model.answers
+            for answer_dict in answer_model.answers:
+                answer_text = next(iter(answer_dict))
+                if answer_text == chosen_answer:
+                    return answer_dict[answer_text]
 
-        if isinstance(options, dict):
-            if chosen_answer in options:
-                is_correct = options.get(chosen_answer, False)
-                return bool(is_correct)
-            self.logger.error("recieved answer is not in answers dictionay")
-        else:
-            self.logger.error("recieved object not a dictionary")
+            self.logger.error(f"Answer '{chosen_answer}' not found in options")
+            return False
 
-        return False
+        except Exception as e:
+            self.logger.error(f"Error checking answer: {e}")
+            return False
             
     async def create_answer(self, question_id: int, answers: dict):
         # TODO Допилить

@@ -17,7 +17,8 @@ from app.bot.web.mw import setup_middlewares
 from app.store import Store, setup_store
 from app.store.database.database import Database
 from app.store.database.modles import Admin
-
+from app.store.database.fill_db import DbaseAccessor
+from app.store.database.fill_db import theme_data, question_data, answer_data
 from .routes import setup_routes
 
 __all__ = ("Application",)
@@ -28,7 +29,7 @@ class Application(AiohttpApplication):
     store: Store | None = None
     database: Database
     bot: Bot | None = None
-
+    dbase_accessor: DbaseAccessor | None = None
 
 app = Application()
 
@@ -57,6 +58,8 @@ class View(AiohttpView):
 
 async def on_startup(app: "Application"):
     await app.database.connect()
+    if not await app.dbase_accessor.populate_database():
+        app.logger.error("Не удалось заполнить базу данных начальными данными")
     app.bot = Bot(token=app.config.bot.token, app=app)
     await app.bot.connect()
     await app.bot.start()
@@ -70,12 +73,14 @@ async def on_shutdown(app: "Application"):
 
 def setup_app(config_path: str) -> Application:
     app = Application()
-    logging.basicConfig(level=logging.ERROR)
+    logging.basicConfig(level=logging.CRITICAL)
     setup_config(app, config_path)
    
     # logging.getLogger().setLevel(app.config.logging.level.upper())
     
     app.database = Database(app)
+    app.dbase_accessor = DbaseAccessor(app)
+
     app.on_startup.append(on_startup)
     app.on_shutdown.append(on_shutdown)
     

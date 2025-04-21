@@ -68,8 +68,8 @@ class Admin:
 
 @dataclass
 class Answer:
-    questiond_id: int
-    answers: dict[str: bool]
+    question_id: int
+    answers: list[dict[str, bool]]
 
 
 @dataclass

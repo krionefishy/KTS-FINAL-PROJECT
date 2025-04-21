@@ -32,38 +32,40 @@ class FsmAccessor(BaseAccessor):
                     return u_id
         except Exception as e:
             await session.rollback()
-            self.logger(f"error while getting next player {e}")
+            self.logger.error(f"error while getting next player {e}")
 
-    async def add_last_player_to_queue(self, user_id: int, chat_id: int, user_score: int):
+    async def add_last_player_to_queue(self, user_id: int, chat_id: int):
         try:
             async with self.app.database.session() as session:
                 result = await session.execute(
                     select(ChatSession.players)
                     .where(ChatSession.chat_id == chat_id)
+                    .with_for_update()
                 )
-
-                players_dct: dict[str, list[dict[int, int]]] = result.scalar_one_or_none()
- 
-                if players_dct:
-
-                    players_dct["players"].append(
-                        {
-                            user_id: user_score
-                        }
-                    )  
-
-                stmt = (update(ChatSession)
-                        .where(ChatSession.chat_id == chat_id)
-                        .values(
-                            players=players_dct
-                        ))
                 
-                session.execute(stmt)
-                session.commit()
+                players_data = result.scalar_one_or_none() or {"players": []}
+                
+                
+                if any(str(user_id) in player for player in players_data["players"]):
+                    return False
+                    
+                
+                new_player = {str(user_id): 0}  
+                players_data["players"].append(new_player)
+                
+                stmt = (
+                    update(ChatSession)
+                    .where(ChatSession.chat_id == chat_id)
+                    .values(players=players_data)
+                )
+                
+                await session.execute(stmt)
+                await session.commit()
 
         except Exception as e:
             await session.rollback()
             self.logger.error(f"Error in adding to queue {e}")
+
 
     async def get_game_status(self, chat_id: int) -> bool:
         async with self.app.database.session() as session:
@@ -89,10 +91,9 @@ class FsmAccessor(BaseAccessor):
                 if exists:
                     stmt = (update(ChatSession)
                             .where(ChatSession.chat_id == chat_id)
-                            .values(is_active=True
-                            ))
+                            .values(is_active=True)
+                            )
                     
-                    session.execute(stmt)
 
                 else:
                     stmt = (insert(ChatSession)
@@ -105,7 +106,9 @@ class FsmAccessor(BaseAccessor):
                                                         'current_question': None,
                                                     }
                                     ))
-                session.commit()
+                await session.execute(stmt)
+
+                await session.commit()
 
         except Exception as e:
             await session.rollback()
@@ -288,7 +291,7 @@ class FsmAccessor(BaseAccessor):
             if not game_state:
                 return False 
             
-            return game_state["current_player"] == user_id
+            return str(game_state["current_player"]) == str(user_id)
 
     async def get_themes_of_session(self, chat_id) -> list[Theme]:
         async with self.app.database.session() as session:
@@ -338,7 +341,7 @@ class FsmAccessor(BaseAccessor):
             )
 
             data = result.first()
-
+            
             if data:
                 game_themes, used_questions = data 
 
@@ -347,3 +350,45 @@ class FsmAccessor(BaseAccessor):
                 
                 return len(used_questions) == len(game_themes) * 3
             return False
+        
+
+    async def check_if_joined(self, chat_id: int, user_id:int):
+        async with self.app.database.session() as session:
+            result = await session.execute(
+                select(ChatSession.players)
+                .where(ChatSession.chat_id == chat_id)
+            )
+
+            players_data = result.scalar_one_or_none()
+
+            if not players_data or not isinstance(players_data.get("players"), list):
+                return False
+
+            return any(
+                str(user_id) in player for player in players_data["players"]
+            )
+        
+
+    async def get_players_list(self, chat_id: int):
+        async with self.app.database.session() as session:
+            result = await session.execute(
+                select(ChatSession.players)
+                .where(ChatSession.chat_id == chat_id)
+            )
+
+            players = result.scalar_one_or_none()
+            if not players or "players" not in players:
+                return []
+
+            players_data = players["players"]
+            
+            players_list = []
+            for player_dict in players_data:
+                if player_dict and isinstance(player_dict, dict):
+
+                    user_id = next(iter(player_dict.keys()), None)
+                    
+                    if user_id is not None:
+                        players_list.append(int(user_id))
+            
+            return players_list

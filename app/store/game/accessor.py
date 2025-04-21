@@ -95,7 +95,7 @@ class GameAccessor(BaseAccessor):
                 
         except Exception as e:
             await session.rollback()
-            self.logger(f"Error while joining game chat_id: {chat_id}, error: {e}")
+            self.logger.error(f"Error while joining game chat_id: {chat_id}, error: {e}")
 
     async def write_current_theme(self, chat_id: int, theme_id: int):
         try:
@@ -112,7 +112,7 @@ class GameAccessor(BaseAccessor):
 
         except Exception as e:
             await session.rollback()
-            self.logger(f"Error while changing theme in chat: {chat_id}, error {e}")
+            self.logger.error(f"Error while changing theme in chat: {chat_id}, error {e}")
             
     async def get_current_theme(self, chat_id: int) -> Theme:
         async with self.app.database.session() as session:
@@ -153,8 +153,8 @@ class GameAccessor(BaseAccessor):
                     return
                 
                 for player in players_dict["players"]:
-                    if user_id in player:
-                        player[user_id] += price
+                    if str(user_id) in player:
+                        player[str(user_id)] += price
 
                 stmt = (update(ChatSession)
                         .where(ChatSession.chat_id == chat_id)
@@ -193,15 +193,15 @@ class GameAccessor(BaseAccessor):
     async def add_win_to_user_statistic(self, user_id: int):
         try:
             async with self.app.database.session() as session:
-                user = await session.execute(
+                result = await session.execute(
                     select(UserModel)
-                    .where(UserModel._id == user_id)
+                    .where(UserModel._id == int(user_id))
                 )
-
-                user = user.scalar_one_or_none()
+                
+                user = result.scalar_one_or_none()
                 if user:
                     stmt = (update(UserModel)
-                            .where(UserModel._id == user_id)
+                            .where(UserModel._id == int(user_id))
                             .values(
                                 total_games=user.total_games + 1,
                                 total_wins=user.total_wins + 1
@@ -227,6 +227,6 @@ class GameAccessor(BaseAccessor):
                 await session.commit()
         except Exception as e:
             await session.rollback()
-            self.logger(f"error incrementing counter {e}")
+            self.logger.error(f"error incrementing counter {e}")
 
 

@@ -25,11 +25,10 @@ async def process_command(bot: "Bot", message: dict):
 
 async def process_command_start(bot: "Bot", chat_id: int, user_id: int):
     fsm = FsmAccessor(bot.app)
-
-    if await fsm.get_game_status(chat_id):
+    game_status = await fsm.get_game_status(chat_id)
+    if game_status:
         await bot.send_message(chat_id, "Игра уже идет!")
         return
-    
     await fsm.set_admin_id(chat_id, admin_id=user_id)
 
     game_handler = bot.get_game_handler()
@@ -44,24 +43,17 @@ async def process_command_rules(bot: "Bot", chat_id):
 
 
 async def process_command_stop(bot: "Bot", chat_id: int, user_id: int):
-    fsm = FsmAccessor(bot.app)
-
-    if not await fsm.is_admin(chat_id, user_id):
+    if not await FsmAccessor(bot.app).is_admin(chat_id, user_id):
         await bot.send_message(chat_id, "❌ Только администратор может остановить игру!")
         return
     
-    game_handler = bot.get_game_handler()
-
-    game_stats = await game_handler.stop_game(chat_id)
-
+    game_stats = await bot.get_game_handler().stop_game(chat_id)
+    
     message = "🛑 Игра остановлена администратором\n\n"
-    if game_stats:
+    if game_stats.get('winner_id'):
         message += "🏆 Результаты:\n"
-        winner_dict = max(game_stats, key=lambda x: next(iter(x.values())))
-        winner_user_id = next(iter(winner_dict))  
-        winner_score = winner_dict[winner_user_id]
-        message += f'<a href="tg://user?id={winner_user_id}">Игрок</a>, со счетом {winner_score}\n'
-
+        message += f'<a href="tg://user?id={game_stats["winner_id"]}">Игрок</a>, со счетом {game_stats["winner_score"]}\n'
+    
     await bot.send_message(
         chat_id=chat_id,
         text=message,

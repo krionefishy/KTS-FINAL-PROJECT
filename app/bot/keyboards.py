@@ -23,7 +23,7 @@ def create_theme_kb(topics: list[Theme]) -> dict:
 def create_question_kb(questions: list[int], ) -> dict:
     return {
         "inline_keyboard": [
-            [{"price": price, "callback_data": f"question:{price}"}] 
+            [{"text": price, "callback_data": f"question:{price}"}] 
             for price in questions
         ]
     }
@@ -33,9 +33,9 @@ def create_answers_kb(answer: Answer) -> dict:
     return {
         "inline_keyboard": [
             [{
-                "text": answer_text,
+                "text": list(answer_dict.keys())[0],
                 "callback_data": f"answer:{answer.question_id}:{idx}"
             }]
-            for idx, (answer_text, _) in enumerate(answer.items())
+            for idx, answer_dict in enumerate(answer.answers)
         ]
     }

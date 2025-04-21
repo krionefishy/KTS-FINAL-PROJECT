@@ -50,15 +50,36 @@ class GameHandler:
 
     async def stop_game(self, chat_id: int):
         players_list = await self.fsm.get_players_stat(chat_id=chat_id)
-
         await self.fsm.clear_game_session(chat_id)
+        
+        if not players_list:
+            return {}
+        
+        for player in players_list:
+            user_id = next(iter(player.keys()))
+            await self.game.add_total_games_stat(user_id)
+        
+        winner_dict = max(players_list, key=lambda x: next(iter(x.values())))
+        winner_id = next(iter(winner_dict))
+        winner_score = winner_dict[winner_id]
+        
+        await self.game.add_win_to_user_statistic(winner_id)
+        
+        return {
+            'winner_id': winner_id,
+            'winner_score': winner_score,
+            'all_players': players_list
+        }
 
-        return players_list
 
     async def _waiting_for_players(self, chat_id: int, message_id: int):
         await asyncio.sleep(15)
 
-        count_players = self.fsm.get_count_of_joined_players(chat_id)
+        if not await self.fsm.get_game_status(chat_id):
+            return 
+        
+
+        count_players = await self.fsm.get_count_of_joined_players(chat_id)
 
         if count_players == 0:
             await self.bot.send_message(
@@ -72,12 +93,10 @@ class GameHandler:
         try:
             await self._delete_message(chat_id, message_id)
         except Exception as e:
-            self.logger.error(f"Failed to delete message: {e}")
+            self.bot.logger.error("Error deleting message {e}")
 
         await self._start_round(chat_id)
-
-    async def handle_join(self, chat_id: int, user_id: int):
-        await self.fsm.add_last_player_to_queue(user_id, chat_id, user_score=0)
+        
 
     async def _delete_message(self, chat_id: int, message_id: int):
         await self.bot.delete_message(chat_id, message_id)
@@ -96,7 +115,7 @@ class GameHandler:
             "current_player": user_id,
             "current_question": None
         }
-        await self.fsm.change_game_state(state_data)
+        await self.fsm.change_game_state(chat_id, state_data)
         reply_markup = create_theme_kb(themes)
 
         await self.bot.send_message(
@@ -106,10 +125,25 @@ class GameHandler:
             parse_mode="HTML"
         )
 
-    async def handle_join_game(self, chat_id: int, user_id: int):
+    async def handle_join_game(self, chat_id: int, user_id: int, callback_query: dict):
         try:
+            is_already_joined = await self.fsm.check_if_joined(chat_id, user_id)
+            if is_already_joined:
+                await self.bot.answer_callback_query(
+                    callback_query_id=callback_query["id"],
+                    text="Вы уже присоединились к игре"
+                )
+                return 
+            
+
+            await self.bot.answer_callback_query(
+                callback_query_id=callback_query["id"],
+                text="Вы присоединились к игре"
+            )
+            
             if await self.fsm.get_game_status(chat_id):
-                await self.game.join(chat_id, user_id)
+                await self.fsm.add_last_player_to_queue(user_id, chat_id)
+                await self.game.add_total_games_stat(user_id)
             else:
                 await self.bot.send_message(
                     chat_id=chat_id,
@@ -141,10 +175,10 @@ class GameHandler:
             "current_player": user_id,
             "current_question": None
         }
-        await self.fsm.change_game_state(state_data)
+        await self.fsm.change_game_state(chat_id, state_data)
 
         questions_list: list[int] = [100, 200, 300]
-
+        
         await self.bot.send_message(
             chat_id=chat_id,
             text=f'<a href="tg://user?id={user_id}">Игрок</a>, выберите стоимость вопроса:\n',
@@ -167,10 +201,10 @@ class GameHandler:
 
         theme_id = await self.fsm.get_current_theme(chat_id)
         if theme_id > 0:
-            question: Question = await self.bot.app.store.quesions.get_random_question_for_game(theme_id, price)
+            question: Question = await self.bot.app.store.quesions.get_random_question_for_game(chat_id, theme_id, price)
             if question is None:
                 
-                self.bot.send_message(
+                await self.bot.send_message(
                     chat_id=chat_id,
                     text=f"Вопрос за стоимость {price} в этой теме уже был выбран до этого.\nВыберите другой вопрос"
                 )
@@ -180,13 +214,13 @@ class GameHandler:
                     "current_player": user_id,
                     "current_question": question.id
                 }
-            await self.fsm.change_game_state(state_data)
+            await self.fsm.change_game_state(chat_id, state_data)
 
             message = f'<a href="tg://user?id={user_id}">Игрок</a>, Выберите ответ на вопрос ниже:\n'
             message += question.question_text
 
-            answers = await self.bot.app.store.answers.get_answers(question.id)
-            reply_markup = create_answers_kb(answer=answers.answers)         
+            answer = await self.bot.app.store.answers.get_answers(question.id)
+            reply_markup = create_answers_kb(answer)        
 
             await self.bot.send_message(
                 chat_id=chat_id,
@@ -209,11 +243,9 @@ class GameHandler:
             )
             return
 
-        answer: Answer = await self.bot.app.store.answers.get_answers(question_id)
-        
-        answers_list = answer.answers
+        chosen_answer = callback_query["message"]["reply_markup"]["inline_keyboard"][idx][0]["text"]
 
-        is_correct = list(answers_list.values())[idx]
+        is_correct = await self.bot.app.store.answers.check_answer(question_id, chosen_answer)
 
         if is_correct:
             points = await self.bot.app.store.quesions.get_question_price(question_id)
@@ -224,31 +256,42 @@ class GameHandler:
                 text=f"✅ Правильно! +{points} очков"
             )
 
-            if self._check_end(chat_id):
+            if await self._check_end(chat_id):
+
                 game_stats: list[dict[int, int]] = await self.stop_game(chat_id)
-                message = "🛑 Игра завершена\n\n"
+                message = "🛑 Игра завершена\n"
+
                 if game_stats:
-                    message += "🏆 Результаты:\n"
+                    
+
                     winner_dict = max(game_stats, key=lambda x: next(iter(x.values())))
+
                     winner_user_id = next(iter(winner_dict))  
+
                     winner_score = winner_dict[winner_user_id]
+
+                    await self.game.add_win_to_user_statistic(winner_user_id)
+                    message += "🏆 Результаты:\n"
                     message += f'<a href="tg://user?id={winner_user_id}">Игрок</a>, со счетом {winner_score}\n'
                     
+
                 await self.bot.send_message(
                     chat_id=chat_id,
                     text=message,
                     parse_mode="HTML"
                 )
+                return 
 
             await self._next_turn(chat_id)
         else:
             next_player_id = await self.fsm.get_next_player(chat_id)
+
             state_data = {
                 "state": "waiting_for_answer",
                 "current_player": next_player_id,
                 "current_question": question_id
             }
-            await self.fsm.change_game_state(state_data)
+            await self.fsm.change_game_state(chat_id, state_data)
             
             message = "❌ Неправильный ответ\n"
             message += f'<a href="tg://user?id={next_player_id}">Игрок</a>, Ваша очередь отвечать\n'
@@ -261,8 +304,10 @@ class GameHandler:
                 callback_query_id=callback_query["id"],
                 text="❌ Неверный ответ! Ход передан следующему игроку"
                 )
+        return 
 
     async def _next_turn(self, chat_id: int):
+        
         next_player_id = await self.fsm.get_next_player(chat_id)
 
         state_data = {
@@ -270,13 +315,12 @@ class GameHandler:
             "current_player": next_player_id,
             "current_question": None
         }
-        await self.fsm.change_game_state(state_data)
+        await self.fsm.change_game_state(chat_id, state_data)
 
         themes = await self.fsm.get_themes_of_session(chat_id)
-
         await self.bot.send_message(
                             chat_id=chat_id,
-                            text=f'🎲 <a href="tg://user?id={next_player_id}">Игрок/a>, выберите тему вопроса:',
+                            text=f'🎲 <a href="tg://user?id={next_player_id}">Игрок</a>, выберите тему вопроса:',
                             reply_markup=create_theme_kb(themes),
                             parse_mode="HTML"
                         )
@@ -296,7 +340,9 @@ class GameHandler:
 
         match action:
             case "join_game":
-                await self.handle_join_game(chat_id, user_id)
+                await self.handle_join_game(chat_id, 
+                                            user_id,
+                                            callback_query)
 
             case "theme":
                 theme_id = int(params[0])
@@ -309,6 +355,7 @@ class GameHandler:
                 question_price = int(params[0])
                 await self.handle_question_price(chat_id, 
                                                  question_price, 
+                                                 user_id,
                                                  callback_query)
 
             case "answer":
