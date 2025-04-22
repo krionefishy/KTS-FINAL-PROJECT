@@ -92,4 +92,20 @@ class AdminAccessor(BaseAccessor):
                 email=current_admin.email,
                 password=current_admin.password
             )
-    
+
+    async def get_admin_by_id(self, admin_id: int) -> Admin:
+        async with self.app.database.session() as session:
+            result = await session.execute(
+                select(AdminModel)
+                .where(AdminModel.id == admin_id)
+            )
+
+            admin_model = result.scalar_one_or_none()
+            if admin_model:
+                return Admin(
+                    id=admin_model.id,
+                    email=admin_model.email,
+                    password=admin_model.password
+                )
+            
+            return None

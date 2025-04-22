@@ -25,6 +25,9 @@ class Poller:
         self.dispatch_update = dispatch_update
         
     async def start(self):
+        if self.is_running:
+            return 
+        
         await self.setup_dispatch_update()
 
         self.is_running = True

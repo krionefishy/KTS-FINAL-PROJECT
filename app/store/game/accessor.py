@@ -203,7 +203,6 @@ class GameAccessor(BaseAccessor):
                     stmt = (update(UserModel)
                             .where(UserModel._id == int(user_id))
                             .values(
-                                total_games=user.total_games + 1,
                                 total_wins=user.total_wins + 1
                             ))
                     

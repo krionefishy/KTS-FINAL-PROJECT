@@ -131,7 +131,6 @@ class FsmAccessor(BaseAccessor):
                         .values(
                             chat_id=chat_id,
                             admin_id=admin_id,
-                            is_active=True,
                             players={"players": []},
                             current_game_state={
                                 "state": "waiting_for_players",
@@ -392,3 +391,20 @@ class FsmAccessor(BaseAccessor):
                         players_list.append(int(user_id))
             
             return players_list
+        
+
+    async def get_game_state(self, chat_id: int):
+        async with self.app.database.session() as session:
+            result = await session.execute(
+                select(ChatSession.current_game_state)
+                .where(ChatSession.chat_id == chat_id)
+            )
+
+            game_state = result.scalar_one_or_none()
+
+            return game_state
+        
+
+    async def get_username(self, chat_id: int, user_id: int):
+        responce = await self.app.bot.get_chat_member(chat_id, user_id)
+        return responce

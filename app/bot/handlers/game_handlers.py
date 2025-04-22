@@ -55,9 +55,9 @@ class GameHandler:
         if not players_list:
             return {}
         
-        for player in players_list:
+        """for player in players_list:
             user_id = next(iter(player.keys()))
-            await self.game.add_total_games_stat(user_id)
+            await self.game.add_total_games_stat(user_id)"""
         
         winner_dict = max(players_list, key=lambda x: next(iter(x.values())))
         winner_id = next(iter(winner_dict))
@@ -108,6 +108,8 @@ class GameHandler:
         )
 
         user_id = await self.fsm.get_next_player(chat_id)
+        username = await self.fsm.get_username(chat_id, user_id)
+        username = username if username else "Игрок"
         themes = await self.bot.app.store.theme.get_themes_for_game(3)
         await self.fsm.set_themes_for_session(chat_id, themes)
         state_data = {
@@ -120,7 +122,7 @@ class GameHandler:
 
         await self.bot.send_message(
             chat_id=chat_id,
-            text=f'<a href="tg://user?id={user_id}">Игрок</a>, выберите тему вопроса\n',
+            text=f'<a href="tg://user?id={user_id}">{username}</a>, выберите тему вопроса\n',
             reply_markup=reply_markup,
             parse_mode="HTML"
         )
@@ -162,6 +164,13 @@ class GameHandler:
                                      user_id: int, 
                                      callback_query: dict):
         is_correct_player = await self.fsm.check_user_id(chat_id, user_id)
+
+        current_state = await self.fsm.get_game_state(chat_id)
+
+        if current_state:
+            if not current_state["state"] == "selecting_theme":
+                return 
+            
         if not is_correct_player:
             await self.bot.answer_callback_query(
                 callback_query_id=callback_query["id"],
@@ -179,9 +188,11 @@ class GameHandler:
 
         questions_list: list[int] = [100, 200, 300]
         
+        username = await self.fsm.get_username(chat_id, user_id)
+        username = username if username else "Игрок"
         await self.bot.send_message(
             chat_id=chat_id,
-            text=f'<a href="tg://user?id={user_id}">Игрок</a>, выберите стоимость вопроса:\n',
+            text=f'<a href="tg://user?id={user_id}">{username}</a>, выберите стоимость вопроса:\n',
             reply_markup=create_question_kb(questions_list),
             parse_mode="HTML"
         )
@@ -192,6 +203,13 @@ class GameHandler:
                                     user_id: int, 
                                     callback_query: dict):
         is_correct_player = await self.fsm.check_user_id(chat_id, user_id)
+
+        current_state = await self.fsm.get_game_state(chat_id)
+
+        if current_state:
+            if not current_state["state"] == "selecting_question":
+                return 
+            
         if not is_correct_player:
             await self.bot.answer_callback_query(
                 callback_query_id=callback_query["id"],
@@ -215,8 +233,9 @@ class GameHandler:
                     "current_question": question.id
                 }
             await self.fsm.change_game_state(chat_id, state_data)
-
-            message = f'<a href="tg://user?id={user_id}">Игрок</a>, Выберите ответ на вопрос ниже:\n'
+            username = await self.fsm.get_username(chat_id, user_id)
+            username = username if username else "Игрок"
+            message = f'<a href="tg://user?id={user_id}">{username}</a>, Выберите ответ на вопрос ниже:\n'
             message += question.question_text
 
             answer = await self.bot.app.store.answers.get_answers(question.id)
@@ -236,6 +255,13 @@ class GameHandler:
                             idx: int,
                             callback_query: dict):
         is_correct_player = await self.fsm.check_user_id(chat_id, user_id)
+
+        current_state = await self.fsm.get_game_state(chat_id)
+
+        if current_state:
+            if not current_state["state"] == "selecting_answer":
+                return 
+
         if not is_correct_player:
             await self.bot.answer_callback_query(
                 callback_query_id=callback_query["id"],
@@ -253,7 +279,7 @@ class GameHandler:
 
             await self.bot.send_message(
                 chat_id=chat_id,
-                text=f"✅ Правильно! +{points} очков"
+                text=f"✅ Правильно! +{points} очков\n Правильный ответ: {chosen_answer}"
             )
 
             if await self._check_end(chat_id):
@@ -271,8 +297,10 @@ class GameHandler:
                     winner_score = winner_dict[winner_user_id]
 
                     await self.game.add_win_to_user_statistic(winner_user_id)
+                    username = await self.fsm.get_username(chat_id, winner_user_id)
+                    username = username if username else "Игрок"
                     message += "🏆 Результаты:\n"
-                    message += f'<a href="tg://user?id={winner_user_id}">Игрок</a>, со счетом {winner_score}\n'
+                    message += f'<a href="tg://user?id={winner_user_id}">{username}</a>, со счетом {winner_score}\n'
                     
 
                 await self.bot.send_message(
@@ -287,14 +315,15 @@ class GameHandler:
             next_player_id = await self.fsm.get_next_player(chat_id)
 
             state_data = {
-                "state": "waiting_for_answer",
+                "state": "selecting_answer",
                 "current_player": next_player_id,
                 "current_question": question_id
             }
             await self.fsm.change_game_state(chat_id, state_data)
-            
+            username = await self.fsm.get_username(chat_id, next_player_id)
+            username = username if username else "Игрок"
             message = "❌ Неправильный ответ\n"
-            message += f'<a href="tg://user?id={next_player_id}">Игрок</a>, Ваша очередь отвечать\n'
+            message += f'<a href="tg://user?id={next_player_id}">{username}</a>, Ваша очередь отвечать\n'
             await self.bot.send_message(
                 chat_id=chat_id,
                 text=message,
@@ -318,9 +347,11 @@ class GameHandler:
         await self.fsm.change_game_state(chat_id, state_data)
 
         themes = await self.fsm.get_themes_of_session(chat_id)
+        username = await self.fsm.get_username(chat_id, next_player_id)
+        username = username if username else "Игрок"
         await self.bot.send_message(
                             chat_id=chat_id,
-                            text=f'🎲 <a href="tg://user?id={next_player_id}">Игрок</a>, выберите тему вопроса:',
+                            text=f'🎲 <a href="tg://user?id={next_player_id}">{username}</a>, выберите тему вопроса:',
                             reply_markup=create_theme_kb(themes),
                             parse_mode="HTML"
                         )

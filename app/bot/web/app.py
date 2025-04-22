@@ -1,6 +1,6 @@
 import base64
 import logging
-
+import asyncio
 from aiohttp.web import (
     Application as AiohttpApplication,
     Request as AiohttpRequest,
@@ -8,6 +8,8 @@ from aiohttp.web import (
 )
 from aiohttp_apispec import setup_aiohttp_apispec
 from aiohttp_session import setup as setup_session
+from aiohttp_session import get_session
+from aiohttp.web_exceptions import HTTPUnauthorized, HTTPForbidden
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
 from cryptography import fernet
 
@@ -18,7 +20,6 @@ from app.store import Store, setup_store
 from app.store.database.database import Database
 from app.store.database.modles import Admin
 from app.store.database.fill_db import DbaseAccessor
-from app.store.database.fill_db import theme_data, question_data, answer_data
 from .routes import setup_routes
 
 __all__ = ("Application",)
@@ -55,15 +56,32 @@ class View(AiohttpView):
     def data(self) -> dict:
         return self.request.get("data", {})
 
+    async def check_authenticated(self):
+        session = await get_session(self.request)
+        if "admin_id" not in session:
+            raise HTTPUnauthorized(
+                text='{"status": "unauthorized", "message": "Session required"}',
+                content_type="application/json"
+            )
+        
+        admin = await self.store.admins.get_admin_by_id(session["admin_id"])
+        if not admin:
+            raise HTTPForbidden(
+                text='{"status": "forbidden", "message": "Invalid session"}',
+                content_type="application/json"
+            )
+        return admin
+
 
 async def on_startup(app: "Application"):
     await app.database.connect()
     if not await app.dbase_accessor.populate_database():
-        app.logger.error("Не удалось заполнить базу данных начальными данными")
+        app.logger.error("Не удалось заполнить базу данных")
+    
     app.bot = Bot(token=app.config.bot.token, app=app)
     await app.bot.connect()
-    await app.bot.start()
-
+    
+    asyncio.create_task(app.bot.start())
 
 async def on_shutdown(app: "Application"):
     await app.database.disconnect()
@@ -103,3 +121,6 @@ def setup_app(config_path: str) -> Application:
     setup_middlewares(app)
     setup_routes(app)
     return app
+
+
+

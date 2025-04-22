@@ -1,4 +1,7 @@
 import logging
+import typing
+if typing.TYPE_CHECKING:
+    from app.bot.web.app import Application
 from dataclasses import dataclass
 
 from sqlalchemy import text
@@ -14,7 +17,7 @@ from app.store.database.sqlalchemy_base import Base
 @dataclass
 class Database:
 
-    def __init__(self, app=None):
+    def __init__(self, app: "Application"=None):
         self.app = app
         self.engine = None 
         self.session_factory = None

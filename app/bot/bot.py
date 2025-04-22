@@ -110,6 +110,21 @@ class Bot:
         except Exception as e:
             self.logger.error(f"error sending cb_query {e}")
 
+    async def get_chat_member(self, chat_id: int, user_id: int):
+        url = f"{self.base_url}getChatMember"
+        params = {
+            "chat_id": chat_id,
+            "user_id": user_id
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params=params) as response:
+                data = await response.json()
+
+                if data.get("ok") and "user" in data["result"]:
+                    user = data["result"]["user"]
+                    return user.get("username")
+                return None
     async def close(self):
         if self.poller:
             await self.poller.stop()
