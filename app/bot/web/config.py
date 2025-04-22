@@ -11,6 +11,7 @@ if typing.TYPE_CHECKING:
 @dataclass
 class BotConfig:
     token: str
+    poll_timeout: int = 30
 
 
 @dataclass
@@ -34,13 +35,6 @@ class AdminConfig:
 
 
 @dataclass
-class Config:
-    bot: BotConfig
-    database: DatabaseConfig
-    admin: AdminConfig
-
-
-@dataclass
 class SessionConfig:
     key: str
     lifetime: int = 24 * 3600
@@ -48,7 +42,15 @@ class SessionConfig:
     http_only: bool = True
     secure: bool = False
 
-   
+
+@dataclass
+class Config:
+    bot: BotConfig
+    database: DatabaseConfig
+    admin: AdminConfig
+    session: SessionConfig
+
+
 def setup_config(app: "Application", cfg_path: str):
     with open(cfg_path, "r") as f:
         raw_config = yaml.safe_load(f)
@@ -67,7 +69,7 @@ def setup_config(app: "Application", cfg_path: str):
         ),
         bot=BotConfig(
                 token=raw_config["bot"]["token"],
-                group_id=raw_config["bot"]["group_id"]
+                poll_timeout=raw_config["bot"].get("poll_timeout", 30)
         ),
         session=SessionConfig(
             key=raw_config["session"]["key"],

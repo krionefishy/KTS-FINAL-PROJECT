@@ -1,16 +1,8 @@
 from dataclasses import dataclass
 
-from sqlalchemy import (
-    JSON,
-    BigInteger,
-    Boolean,
-    Column,
-    ForeignKey,
-    Integer,
-    String
-)
-
+from sqlalchemy import JSON, BigInteger, Boolean, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
+
 from app.store.database.sqlalchemy_base import Base
 
 
@@ -30,8 +22,11 @@ class ChatSession(Base):
     admin_id = Column(BigInteger, default=None)
     players = Column(JSON)
     current_game_state = Column(JSON)
+    current_theme = Column(Integer)
+    used_theme_questions = Column(JSON, default=list)
+    game_themes = Column(JSON, default=list)
 
-
+    
 class ThemeModel(Base):
     __tablename__ = "themes"
 
@@ -73,12 +68,12 @@ class Admin:
 
 @dataclass
 class Answer:
-    questiond_id: int
-    answers: dict[str: bool]
+    question_id: int
+    answers: list[dict[str, bool]]
 
 
 @dataclass
-class Quesion:
+class Question:
     id: int
     theme_id: int
     price: int
@@ -89,3 +84,11 @@ class Quesion:
 class Theme:
     id: int
     theme_name: str
+
+
+@dataclass
+class User:
+    id: int
+    total_games: int
+    total_wins: int
+    total_score: int

@@ -10,10 +10,7 @@ class BaseAccessor:
         self.app = app
         self.logger = getLogger("accessor")
 
-        app.on_startup.append(self.connect)
-        app.on_cleanup.append(self.disconnect)
-
-    async def connect(self, app: "Application"):
+    async def connect(self):
         self.logger.info(f"Connecting {self.__class__.__name__}")
         try:
             await self._on_connect()
@@ -22,7 +19,7 @@ class BaseAccessor:
             self.logger.error(f"Connection failed in {self.__class__.__name__}: {e}")
             raise
 
-    async def disconnect(self, app: "Application"):
+    async def disconnect(self):
         self.logger.info(f"Disconnecting {self.__class__.__name__}")
         try:
             await self._on_disconnect()

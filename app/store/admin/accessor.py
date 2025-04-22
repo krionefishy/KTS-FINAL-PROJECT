@@ -4,7 +4,7 @@ if typing.TYPE_CHECKING:
     from app.bot.web.app import Application
 
 import bcrypt
-from aiohttp.web_exceptions import HTTPConflict
+from aiohttp.web_exceptions import HTTPConflict, HTTPNotFound
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
@@ -69,7 +69,10 @@ class AdminAccessor(BaseAccessor):
                 )
             except IntegrityError:
                 await session.rollback()
-                raise HTTPConflict(reason="admin already exists")
+                raise HTTPConflict(
+                    text="admin already exists",
+                    content_type="application/json"
+                    )
             
     async def get_admin_by_email(self, email: str) -> Admin:
         async with self.app.database.session() as session:
@@ -79,7 +82,10 @@ class AdminAccessor(BaseAccessor):
 
             current_admin = result.scalar_one_or_none()
             if current_admin is None:
-                return None
+                raise HTTPNotFound(
+                    text="admin with such email not found",
+                    content_type="application/json"
+                )
             
             return Admin(
                 id=current_admin.id,

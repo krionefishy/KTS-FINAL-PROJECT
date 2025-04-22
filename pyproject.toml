@@ -1,8 +1,8 @@
 [tool.ruff]
-line-length = 90
+line-length = 120
 indent-width = 4
 target-version = "py312"
-ignore = ["B904", "F403", "G004"]
+ignore = ["B904", "F403", "G004", "TRY300", "PLC0415", "SIM118", "PERF401", "RUF006", "UP007"]
 exclude = [
     ".bzr",
     ".direnv",
