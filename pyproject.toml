@@ -2,7 +2,7 @@
 line-length = 120
 indent-width = 4
 target-version = "py312"
-ignore = ["B904", "F403", "G004", "TRY300", "PLC0415", "SIM118", "PERF401", "RUF006", "UP007"]
+ignore = ["B904", "F403", "G004", "TRY300", "PLC0415", "SIM118", "PERF401", "RUF006", "UP007", "RUF015"]
 exclude = [
     ".bzr",
     ".direnv",

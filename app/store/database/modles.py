@@ -26,7 +26,7 @@ class ChatSession(Base):
     used_theme_questions = Column(JSON, default=list)
     game_themes = Column(JSON, default=list)
 
-    
+
 class ThemeModel(Base):
     __tablename__ = "themes"
 
@@ -45,8 +45,7 @@ class QuestionModel(Base):
 class AnswerModel(Base):
     __tablename__ = "answers"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    question_id = Column(Integer, 
-                         ForeignKey("questions.question_id"), unique=True)
+    question_id = Column(Integer, ForeignKey("questions.question_id"), unique=True)
     answers = Column(JSON)
 
 

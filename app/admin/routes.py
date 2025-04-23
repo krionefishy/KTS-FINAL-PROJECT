@@ -1,12 +1,9 @@
 import typing
 
+from app.admin.view import AdminCurrentView, AdminLoginView
 
-from app.admin.view import AdminLoginView, AdminCurrentView
 if typing.TYPE_CHECKING:
     from app.bot.web.app import Application
-
-
-
 
 
 def setup_routes(app: "Application"):

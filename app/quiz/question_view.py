@@ -1,8 +1,8 @@
-from aiohttp_apispec import docs, request_schema, response_schema
 from aiohttp.web_exceptions import HTTPBadRequest, HTTPConflict
+from aiohttp_apispec import docs, request_schema, response_schema
 
 from app.bot.web.app import View
-from app.bot.web.shemas import QuestionRequestShemaPost, QuestionResponse, ErrorResponse
+from app.bot.web.shemas import ErrorResponse, QuestionRequestShemaPost, QuestionResponse
 from app.pkg.utils import error_json_response, json_response
 
 
@@ -28,28 +28,24 @@ class QuestionAddView(View):
 
         try:
             question = await self.request.app.store.questions.create_question(
-                question_theme, question_text, question_price)
-                
-            return json_response({
-                "id": question.id,
-                "theme_id": question.theme_id,
-                "price": question.price,
-                "question_text": question.question_text
-            }, status=201)
-            
+                question_theme, question_text, question_price
+            )
+
+            return json_response(
+                {
+                    "id": question.id,
+                    "theme_id": question.theme_id,
+                    "price": question.price,
+                    "question_text": question.question_text,
+                },
+                status=201,
+            )
+
         except HTTPBadRequest as e:
-            return error_json_response(
-                http_status=400,
-                status="bad_request",
-                message=str(e)
-            )
+            return error_json_response(http_status=400, status="bad_request", message=str(e))
         except HTTPConflict as e:
-            return error_json_response(
-                http_status=409,
-                status="conflict",
-                message=str(e)
-            )
-        
+            return error_json_response(http_status=409, status="conflict", message=str(e))
+
 
 class QuestionGetView(View):
     @docs(
@@ -66,35 +62,28 @@ class QuestionGetView(View):
         await self.check_authenticated()
         theme_id = self.request.query.get("theme_id")
         price = self.request.query.get("price")
-        
+
         if not theme_id or not price:
             return error_json_response(
-                http_status=400,
-                status="bad_request",
-                message="Parameters theme_id and price are required"
+                http_status=400, status="bad_request", message="Parameters theme_id and price are required"
             )
-            
+
         try:
-            question = await self.request.app.store.quesions.get_question(
-                int(theme_id), int(price))
-                
+            question = await self.request.app.store.quesions.get_question(int(theme_id), int(price))
+
             if not question:
-                return error_json_response(
-                    http_status=404,
-                    status="not_found",
-                    message="Question not found"
-                )
-                
-            return json_response({
-                "id": question.id,
-                "theme_id": question.theme_id,
-                "price": question.price,
-                "question_text": question.question_text
-            })
-            
+                return error_json_response(http_status=404, status="not_found", message="Question not found")
+
+            return json_response(
+                {
+                    "id": question.id,
+                    "theme_id": question.theme_id,
+                    "price": question.price,
+                    "question_text": question.question_text,
+                }
+            )
+
         except ValueError:
             return error_json_response(
-                http_status=400,
-                status="bad_request",
-                message="Invalid theme_id or price format"
+                http_status=400, status="bad_request", message="Invalid theme_id or price format"
             )

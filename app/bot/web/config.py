@@ -1,4 +1,3 @@
-
 import typing
 from dataclasses import dataclass
 
@@ -25,7 +24,7 @@ class DatabaseConfig:
     @property
     def url(self) -> str:
         return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
-    
+
 
 @dataclass
 class AdminConfig:
@@ -55,27 +54,20 @@ def setup_config(app: "Application", cfg_path: str):
     with open(cfg_path, "r") as f:
         raw_config = yaml.safe_load(f)
     app.config = Config(
-        admin=AdminConfig(
-            id=1,
-            email=raw_config["admin"]["email"],
-            password=raw_config["admin"]["password"]
-        ),
+        admin=AdminConfig(id=1, email=raw_config["admin"]["email"], password=raw_config["admin"]["password"]),
         database=DatabaseConfig(
-                host=raw_config["database"]["host"],
-                port=raw_config["database"]["port"],
-                user=raw_config["database"]["user"],
-                password=raw_config["database"]["password"],
-                database=raw_config["database"]["database"],
+            host=raw_config["database"]["host"],
+            port=raw_config["database"]["port"],
+            user=raw_config["database"]["user"],
+            password=raw_config["database"]["password"],
+            database=raw_config["database"]["database"],
         ),
-        bot=BotConfig(
-                token=raw_config["bot"]["token"],
-                poll_timeout=raw_config["bot"].get("poll_timeout", 30)
-        ),
+        bot=BotConfig(token=raw_config["bot"]["token"], poll_timeout=raw_config["bot"].get("poll_timeout", 30)),
         session=SessionConfig(
             key=raw_config["session"]["key"],
-            lifetime=raw_config["session"].get("lifetime", 86400), 
+            lifetime=raw_config["session"].get("lifetime", 86400),
             cookie_name=raw_config["session"].get("cookie_name", "session_id"),
             http_only=raw_config["session"].get("http_only", True),
-            secure=raw_config["session"].get("secure", False)
+            secure=raw_config["session"].get("secure", False),
         ),
     )

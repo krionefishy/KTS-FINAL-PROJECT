@@ -36,29 +36,25 @@ async def process_command_start(bot: "Bot", chat_id: int, user_id: int):
 
 
 async def process_command_rules(bot: "Bot", chat_id):
-    await bot.send_message(
-        chat_id=chat_id,
-        text="Правила"
-    )
+    await bot.send_message(chat_id=chat_id, text="Правила")
 
 
 async def process_command_stop(bot: "Bot", chat_id: int, user_id: int):
     if not await FsmAccessor(bot.app).is_admin(chat_id, user_id):
         await bot.send_message(chat_id, "❌ Только администратор может остановить игру!")
         return
-    
+
     game_stats = await bot.get_game_handler().stop_game(chat_id)
-    
+    username = await FsmAccessor(bot.app).get_username(chat_id, user_id)
+    username = username if username else "Игрок"
     message = "🛑 Игра остановлена администратором\n\n"
-    if game_stats.get('winner_id'):
+    if game_stats.get("winner_id"):
         message += "🏆 Результаты:\n"
-        message += f'<a href="tg://user?id={game_stats["winner_id"]}">Игрок</a>, со счетом {game_stats["winner_score"]}\n'
-    
-    await bot.send_message(
-        chat_id=chat_id,
-        text=message,
-        parse_mode="HTML"
-    )
+        message += (
+            f'<a href="tg://user?id={game_stats["winner_id"]}">{username}</a>, со счетом {game_stats["winner_score"]}\n'
+        )
+
+    await bot.send_message(chat_id=chat_id, text=message, parse_mode="HTML")
 
 
 async def process_command_stats(bot: "Bot", chat_id: int, user_id: int, username: str):
@@ -71,8 +67,4 @@ async def process_command_stats(bot: "Bot", chat_id: int, user_id: int, username
     message += f"🏆 Побед: {user.total_wins}\n"
     message += f"⭐ Всего очков: {user.total_score}\n"
 
-    await bot.send_message(
-        chat_id=chat_id,
-        text=message,
-        parse_mode="HTML"
-    )
+    await bot.send_message(chat_id=chat_id, text=message, parse_mode="HTML")
