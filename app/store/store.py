@@ -22,7 +22,7 @@ class Store:
 
     async def connect(self):
         await self.admins.connect()
-    
+
     async def disconnect(self):
         await self.admins.disconnect()
 

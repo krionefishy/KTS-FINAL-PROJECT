@@ -8,21 +8,14 @@ from app.store.database.modles import Answer, AnswerModel
 class AnswerAccessor(BaseAccessor):
     async def get_answers(self, question_id: int) -> Answer:
         async with self.app.database.session() as session:
-            result = await session.execute(
-                select(AnswerModel.answers)
-                .where(AnswerModel.id == question_id)
-            )
+            result = await session.execute(select(AnswerModel.answers).where(AnswerModel.id == question_id))
 
             answer = result.scalar_one_or_none()
             if answer is None:
-                raise HTTPNotFound(
-                    text="answers does not exists for this question",
-                    content_type="application/json"
-                )
-            
-            return Answer(question_id=question_id,
-                          answers=answer)
-        
+                raise HTTPNotFound(text="answers does not exists for this question", content_type="application/json")
+
+            return Answer(question_id=question_id, answers=answer)
+
     async def check_answer(self, question_id: int, chosen_answer: str) -> bool:
         try:
             answer_model = await self.get_answers(question_id)
@@ -41,8 +34,7 @@ class AnswerAccessor(BaseAccessor):
         except Exception as e:
             self.logger.error(f"Error checking answer: {e}")
             return False
-            
+
     async def create_answer(self, question_id: int, answers: dict):
         # TODO Допилить
         raise NotImplementedError
-    
